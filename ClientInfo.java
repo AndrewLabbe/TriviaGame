@@ -7,12 +7,21 @@ public class ClientInfo {
     private Socket clientSocket;
     BufferedReader in;
     PrintWriter out;
+    private int score = 0;
 
     public ClientInfo(String clientID, Socket clientSocket, BufferedReader in, PrintWriter out) {
         this.clientID = clientID;
         this.clientSocket = clientSocket;
         this.in = in;
         this.out = out;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 
 }

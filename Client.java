@@ -2,8 +2,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 public class Client {
     private int port;
@@ -11,6 +14,7 @@ public class Client {
     private int serverPort;
 
     private String clientID;
+    private int score = 0;
 
     public Client(int port, String serverIP, int serverPort) {
         this.port = port;
@@ -48,8 +52,20 @@ public class Client {
         }
     }
 
+    private void buzz() throws UnknownHostException {
+        long timeStamp = System.currentTimeMillis();
+        byte[] buffer = ByteBuffer.allocate(Long.BYTES).putLong(timeStamp).array();
+        // send pack with content of timestamp
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(this.serverIP),
+                this.serverPort);
+    }
+
     public static void main(String args[]) throws IOException, InterruptedException {
         Client client = new Client(9000, "localhost", 9090);
         client.establishConnectToServer();
+    }
+
+    private void processResponse() {
+
     }
 }
