@@ -3,6 +3,13 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 public class ClientInfo {
+    public enum GameState {
+        WAITING_FOR_PLAYERS,
+        POLLING,
+        CLIENT_ANSWERING,
+        SHOWING_ANSWERS,
+    }
+
     private String clientID;
     private Socket clientSocket;
     BufferedReader in;

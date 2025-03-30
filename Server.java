@@ -48,30 +48,47 @@ public class Server {
     public void createUDPPollingThread() {
         try {
             byte[] incomingData = new byte[1024];
+            System.out.println("\u001B[31m" + "Starting a UDP Thread..." + "\u001B[0m");
 
             while (true) {
-                if (gameState != GameState.POLLING) {
-                    UDPDatagramSocket.close();
-                    return;
-                }
                 try {
+                    // TODO if not polling it still will block on incoming packet then quit
+                    // System.out.println("What is the game state: " + gameState);
+                    // if (gameState != GameState.POLLING) {
+                    // System.out.println("Game state is not polling, closing UDP socket");
+                    // UDPDatagramSocket.close();
+                    // return;
+                    // }
+
                     // create datagram packet using incoming data as paramater
+                    System.out.println("\u001B[31m" + "Listening for a new UDP packet..." + "\u001B[0m");
                     DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
+                    UDPDatagramSocket.receive(incomingPacket);
+                    // TODO see above TODO
+                    if (gameState != GameState.POLLING) {
+                        UDPDatagramSocket.receive(incomingPacket);
+
+                        byte[] data = incomingPacket.getData();
+                        System.out.println("Data: " + data);
+                        System.out.println("Game state is not polling, ignoring packet that came in");
+                        // System.out.println("Game state is not polling, closing UDP socket");
+                        // UDPDatagramSocket.close();
+                        continue;
+                    }
                     // accept packet
                     UDPDatagramSocket.receive(incomingPacket);
 
-                    // TODO do something with incoming udp packts
                     byte[] data = incomingPacket.getData();
                     // try to convert to long
                     long timeStamp = ByteBuffer.wrap(data).getLong();
-                    System.out.println("Received UDP packet: " + data);
 
                     // when add to queue, use clientID and timestamp
                     String clientID = incomingPacket.getAddress().getHostAddress() + ":" + incomingPacket.getPort();
+                    System.out.println("Client buzzed: " + clientID + " at " + timeStamp);
                     messageQueue.add(clientID + "$" + timeStamp);
                     Thread.sleep(5);
                 } catch (Exception e) {
-                    System.out.println("Cannot access network");
+                    e.printStackTrace();
                     Thread.sleep(1000);
                 }
             }
@@ -143,10 +160,8 @@ public class Server {
     // TODO implement client game logic
     private void clientThread(ClientInfo info) throws IOException, InterruptedException {
         while (true) {
-            // -- sending -- => out.println(...);
-            // -- listening -- => String message = in.readLine();
-            System.out.println("Client says: " + info.in.readLine());
-            info.out.println("Hello from server!");
+            if (info.in.ready())
+                System.out.println("Client says: " + info.in.readLine());
             Thread.sleep(10);
         }
     }
@@ -154,32 +169,52 @@ public class Server {
     public void runGameLoop() throws InterruptedException, IOException {
         // TODO process for managing when to stop waiting for clients
         gameState = GameState.WAITING_FOR_PLAYERS;
+        int secondForJoin = 5;
+        System.out.println("Waiting for clients to join for " + secondForJoin + " seconds...");
+        Thread.sleep(secondForJoin * 1000);
+
+        // Thread for polling, stays constantly open because it will just receive
+        // packets constantly and do nothing with them if not polling gamestate
+        new Thread(() -> {
+            createUDPPollingThread();
+        }).start();
+
         while (true) {
             // TODO send the question
 
             // wait for clients to buzz
             gameState = GameState.POLLING;
-            Thread poll = new Thread() {
-                public void run() {
-                    createUDPPollingThread();
-                }
-            };
-            poll.start();
+            Thread.sleep(100);
+
             // waiting for 15 seconds
+            System.out.println("Polling for 15 seconds...");
             long buzzTime = 15000;
             Thread.sleep(buzzTime);
             gameState = GameState.CLIENT_ANSWERING;
-            poll.join();
+            // poll.join();
+            System.out.println("Polling done, moving to client answering...");
+            sendNext();
 
             // parse queue for who answered first
             if (messageQueue.isEmpty()) {
-                System.out.println("No clients answered");
+                System.out.println("No clients buzzed, not showing answers next question...");
                 // TODO what to do when no clients answered; send "next" move to next question
+                sendNext();
+                continue;
             } else {
                 String[] parts = messageQueue.poll().split("$");
-                String firstClientID = parts[0];
-                long minTime = Long.parseLong(parts[1]);
+                // TODO SPLIT FAILED
+                /*
+                 * Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 1
+                 * out of bounds for length 1
+                 * at Server.runGameLoop(Server.java:207)
+                 * at Server.main(Server.java:283)
+                 * Data: [B@25382476
+                 */
+                String firstClientID = parts[0]; // first id in queue
+                long minTime = Long.parseLong(parts[1]); // first timestamp in queue
 
+                // find first client who buzzed
                 while (!messageQueue.isEmpty()) {
                     parts = messageQueue.poll().split("$");
                     String clientID = parts[0];
@@ -201,37 +236,44 @@ public class Server {
                 ClientInfo firstClient = clientSockets.get(firstClientID);
                 // wait for 10 seconds to get answer
                 int waitTime = 10000;
-
-                // new Thread(() -> {
-                // try {
-                // while (true) {
-                // if (firstClient.in.ready()) {
-                // String response = firstClient.in.readLine();
-                // }
-                // Thread.sleep(1000);
-                // }
-                // } catch (IOException | InterruptedException e) {
-                // e.printStackTrace();
-                // }
-                // });
                 Thread.sleep(waitTime);
+
                 if (firstClient.in.ready()) {
                     String response = firstClient.in.readLine();
                     System.out.println("Client answered: " + response);
-                    // TODO if correct +10 points
+                    // TODO if correct +10 points and send "correct"
                     firstClient.out.println("Correct! +10");
-                    // TODO if wrong -10 points
+                    // TODO if wrong -10 points and send "wrong"
                     firstClient.out.println("Wrong! -10");
-
                 } else {
                     System.out.println("Client did not answer");
                     firstClient.out.println("No answer! -20");
                     // TODO -20 points
                 }
             }
+            gameState = GameState.SHOWING_ANSWERS;
+            System.out.println("Showing answers...");
+            int timeToShowAnswers = 5000;
+            Thread.sleep(timeToShowAnswers);
             // TODO show answers
 
             // TODO move to next question; send "next" to all clients
+            sendNext();
+        }
+    }
+
+    private void sendNext() {
+        for (String clientID : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientID);
+            info.out.println("next");
+        }
+    }
+
+    private void sendQuestion() {
+        for (String clientID : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientID);
+            // TODO send question
+            info.out.println("Question: " + currentQuestion);
         }
     }
 
@@ -244,10 +286,6 @@ public class Server {
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
-        }).start();
-
-        new Thread(() -> {
-            server.createUDPPollingThread();
         }).start();
 
         server.runGameLoop();
