@@ -65,11 +65,6 @@ public class Client {
         // Send message to the server
         out.println("Hello from client " + this.clientID + "!");
 
-        // Receive response from the server
-        String response = in.readLine();
-        System.out.println("Server says: " + response);
-        Thread.sleep(1000);
-
         clientGameLoop();
     }
 

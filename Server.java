@@ -7,16 +7,23 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Server {
+    public static final String RESET = "\u001B[0m";
+    public static final String RED = "\u001B[31m";
+    public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
+    public static final String MAGENTA = "\u001B[35m";
+    public static final String CYAN = "\u001B[36m";
+    public static final String WHITE = "\u001B[37m";
+
     public enum GameState {
-        WAITING_FOR_PLAYERS,
-        POLLING,
-        CLIENT_ANSWERING,
-        SHOWING_ANSWERS,
+        WAITING_FOR_PLAYERS, POLLING, CLIENT_ANSWERING, SHOWING_ANSWERS,
     }
 
     private int currentQuestion = 0;
@@ -48,7 +55,7 @@ public class Server {
     public void createUDPPollingThread() {
         try {
             byte[] incomingData = new byte[1024];
-            System.out.println("\u001B[31m" + "Starting a UDP Thread..." + "\u001B[0m");
+            System.out.println(YELLOW + "Starting a UDP Thread..." + RESET);
 
             while (true) {
                 try {
@@ -61,7 +68,7 @@ public class Server {
                     // }
 
                     // create datagram packet using incoming data as paramater
-                    System.out.println("\u001B[31m" + "Listening for a new UDP packet..." + "\u001B[0m");
+                    System.out.println(YELLOW + "Listening for a new UDP packet..." + RESET);
                     DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                     UDPDatagramSocket.receive(incomingPacket);
                     // TODO see above TODO
@@ -84,8 +91,9 @@ public class Server {
 
                     // when add to queue, use clientID and timestamp
                     String clientID = incomingPacket.getAddress().getHostAddress() + ":" + incomingPacket.getPort();
-                    System.out.println("Client buzzed: " + clientID + " at " + timeStamp);
-                    messageQueue.add(clientID + "$" + timeStamp);
+                    String store = clientID + "$" + timeStamp;
+                    messageQueue.add(store);
+                    System.out.println(CYAN + "Client buzzed: " + store + RESET);
                     Thread.sleep(5);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -167,56 +175,50 @@ public class Server {
     }
 
     public void runGameLoop() throws InterruptedException, IOException {
-        // TODO process for managing when to stop waiting for clients
-        gameState = GameState.WAITING_FOR_PLAYERS;
-        int secondForJoin = 5;
-        System.out.println("Waiting for clients to join for " + secondForJoin + " seconds...");
-        Thread.sleep(secondForJoin * 1000);
-
-        // Thread for polling, stays constantly open because it will just receive
         // packets constantly and do nothing with them if not polling gamestate
         new Thread(() -> {
             createUDPPollingThread();
         }).start();
 
-        while (true) {
-            // TODO send the question
+        // TODO process for managing when to stop waiting for clients
+        gameState = GameState.WAITING_FOR_PLAYERS;
+        int secondForJoin = 10;
+        System.out.println(GREEN + "Waiting for clients to join for " + secondForJoin + " seconds..." + RESET);
+        Thread.sleep(secondForJoin * 1000);
 
+        // Thread for polling, stays constantly open because it will just receive
+
+        while (true) {
             // wait for clients to buzz
             gameState = GameState.POLLING;
-            Thread.sleep(100);
+            sendNext();
 
             // waiting for 15 seconds
-            System.out.println("Polling for 15 seconds...");
+            System.out.println(GREEN + "Polling for 15 seconds..." + RESET);
             long buzzTime = 15000;
             Thread.sleep(buzzTime);
             gameState = GameState.CLIENT_ANSWERING;
             // poll.join();
-            System.out.println("Polling done, moving to client answering...");
-            sendNext();
+            System.out.println(GREEN + "Polling done, moving to client answering..." + RESET);
 
             // parse queue for who answered first
             if (messageQueue.isEmpty()) {
-                System.out.println("No clients buzzed, not showing answers next question...");
+                System.out.println(RED + "No clients buzzed, not showing answers next question..." + RESET);
                 // TODO what to do when no clients answered; send "next" move to next question
                 sendNext();
                 continue;
             } else {
-                String[] parts = messageQueue.poll().split("$");
-                // TODO SPLIT FAILED
-                /*
-                 * Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 1
-                 * out of bounds for length 1
-                 * at Server.runGameLoop(Server.java:207)
-                 * at Server.main(Server.java:283)
-                 * Data: [B@25382476
-                 */
+                // split on '$'
+                System.out.println("Splitting " + messageQueue.peek());
+                String[] parts = messageQueue.poll().split("\\$");
+                System.out.println("Parts: " + Arrays.toString(parts));
+
                 String firstClientID = parts[0]; // first id in queue
                 long minTime = Long.parseLong(parts[1]); // first timestamp in queue
 
                 // find first client who buzzed
                 while (!messageQueue.isEmpty()) {
-                    parts = messageQueue.poll().split("$");
+                    parts = messageQueue.poll().split("\\$");
                     String clientID = parts[0];
                     long timeStamp = Long.parseLong(parts[1]);
                     if (timeStamp < minTime) {
@@ -238,6 +240,13 @@ public class Server {
                 int waitTime = 10000;
                 Thread.sleep(waitTime);
 
+                // TODO When we recieve a UDP packet the client port is different for UPD and TCP
+                /*
+                 * When we get tcp connection we give the id as <ip>:<TCP port>
+                 * When the client buzzes the incoming packet is from <ip>:<UDP port>
+                 * So if we try to extract the client id from the incoming packet we will not
+                 * find it in the map
+                 */
                 if (firstClient.in.ready()) {
                     String response = firstClient.in.readLine();
                     System.out.println("Client answered: " + response);
