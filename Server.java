@@ -22,19 +22,31 @@ public class Server {
     private int currentQuestion = 0;
     private GameState gameState = GameState.WAITING_FOR_PLAYERS;
 
-    private int port;
+    private int portTCP;
+    private int portUDP;
 
     private Map<String, ClientInfo> clientSockets = new HashMap<>();
 
     private ConcurrentLinkedQueue<String> messageQueue = new ConcurrentLinkedQueue<String>();
 
-    public Server(int port) {
-        this.port = port;
+    private ServerSocket serverTCPSocket;
+    private DatagramSocket UDPDatagramSocket;
+
+    public Server(int portTCP, int portUDP) {
+        this.portTCP = portTCP;
+        this.portUDP = portUDP;
+
+        // Create tcp socket to accept incoming connections over tcp
+        try {
+            this.serverTCPSocket = new ServerSocket(this.portTCP);
+            this.UDPDatagramSocket = new DatagramSocket(this.portUDP);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void createUDPPollingThread() {
         try {
-            DatagramSocket UDPDatagramSocket = new DatagramSocket(this.port);
             byte[] incomingData = new byte[1024];
 
             while (true) {
@@ -68,22 +80,39 @@ public class Server {
         }
     }
 
+    /*
+     * Always accepting new TCP connections
+     * -------------------------------------
+     * Loops forever:
+     * blocks until client connects over TCP
+     * Asks createClientTCPThread to setup TCP thread
+     * restarts loop blocks until client connects over TCP...
+     */
     public void createTCPConnectionThread() throws IOException, InterruptedException {
-        ServerSocket serverSocket = new ServerSocket(this.port);
-        while (true) {
-            // create a server socket on port number 9090
-            System.out.println("Server is running and waiting for client connection...");
+        try {
+            while (true) {
+                // wait for a client to request to connect
+                System.out.println("Waiting new TCP connection...");
 
-            // Accept incoming client connection
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Client connected!");
+                Socket clientSocket = this.serverTCPSocket.accept();
+                System.out.println("Client connected!");
 
-            createClientTCPThread(clientSocket);
+                createClientTCPThread(clientSocket);
+            }
+        } catch (IOException io) {
+            io.printStackTrace();
         }
     }
 
+    /*
+     * Takes in a connected TCP socket:
+     * Creates in and out streams for TCP connection
+     * Assigns client ID: <Client IP>:<PORT>
+     * Creates a ClientInfo to track connected clients
+     * Throws client into a thread loop to manage TCP communication, every client
+     * gets its own TCP thread
+     */
     private void createClientTCPThread(Socket clientSocket) throws InterruptedException, IOException {
-        // TODO establish new thread b4 listen/send while loop
         // Setup input and output streams for communication with the client
         BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -96,7 +125,6 @@ public class Server {
         clientSockets.put(clientID, info);
         // assign client ID
         System.out.println("Client says: " + in.readLine());
-        // out.println("Hello client, you are connected!");
         out.println(clientID);
 
         // create new thread
@@ -106,9 +134,13 @@ public class Server {
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
-        });
+        }).start();
     }
 
+    /*
+     * The loop/thread that each client will individually run
+     */
+    // TODO implement client game logic
     private void clientThread(ClientInfo info) throws IOException, InterruptedException {
         while (true) {
             // -- sending -- => out.println(...);
@@ -117,10 +149,6 @@ public class Server {
             info.out.println("Hello from server!");
             Thread.sleep(10);
         }
-    }
-
-    private void processResponse() {
-
     }
 
     public void runGameLoop() throws InterruptedException, IOException {
@@ -208,8 +236,7 @@ public class Server {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        Server server = new Server(9090);
-        // server.createTCPConnectionThread();
+        Server server = new Server(9080, 9090);
 
         new Thread(() -> {
             try {
