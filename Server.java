@@ -6,7 +6,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,11 +21,11 @@ public class Server {
     public static final String CYAN = "\u001B[36m";
     public static final String WHITE = "\u001B[37m";
 
-    private static serverQuestion[] questionList = {
-        new serverQuestion("Question 1", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-        new serverQuestion("Question 2", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-        new serverQuestion("Question 3", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-        new serverQuestion("Question 4", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+    private static ServerQuestion[] questionList = {
+        new ServerQuestion("Question 1", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+        new ServerQuestion("Question 2", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+        new ServerQuestion("Question 3", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+        new ServerQuestion("Question 4", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
     };
 
     public int currentIDIteration = 0;
@@ -315,7 +314,7 @@ public class Server {
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
             // TODO send question as serialized packet
-            info.out.println(new clientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
+            info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
         }
     }
 

@@ -1,11 +1,11 @@
 
-public class serverQuestion {
+public class ServerQuestion {
     
     private String questionText;
     private String[] answers;
     private int correctQuestionIndex;
 
-    public serverQuestion(String questionText, String[] answers, int correctQuestionIndex){
+    public ServerQuestion(String questionText, String[] answers, int correctQuestionIndex){
         this.questionText = questionText;
         this.answers = answers;
         this.correctQuestionIndex = correctQuestionIndex;
