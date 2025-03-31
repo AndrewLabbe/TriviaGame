@@ -22,11 +22,21 @@ public class Server {
     public static final String CYAN = "\u001B[36m";
     public static final String WHITE = "\u001B[37m";
 
+    private static serverQuestion[] questionList = {
+        new serverQuestion("Question 1", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+        new serverQuestion("Question 2", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+        new serverQuestion("Question 3", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+        new serverQuestion("Question 4", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+    };
+
+    public int currentIDIteration = 0;
+
     public enum GameState {
         WAITING_FOR_PLAYERS, POLLING, CLIENT_ANSWERING, SHOWING_ANSWERS,
     }
 
-    private int currentQuestion = 0;
+    // set to -1 because game first increments value to move onto "first" question at index 0
+    private int currentQuestion = -1;
     private GameState gameState = GameState.WAITING_FOR_PLAYERS;
 
     private int portTCP;
@@ -50,6 +60,7 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     public void createUDPPollingThread() {
@@ -87,13 +98,25 @@ public class Server {
 
                     byte[] data = incomingPacket.getData();
                     // try to convert to long
-                    long timeStamp = ByteBuffer.wrap(data).getLong();
+                    String message = new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                    String altMessage = "";
+
+                    // bytes include hidden characters, manual parsing needed
+                    for (int i = 0; i < message.length(); i++) {
+                        char currentChar = message.charAt(i);
+                        
+                        // Check if the character is '$' or a digit
+                        if (currentChar == '$' || Character.isDigit(currentChar)) {
+                            // Process the character (here we print it)
+                            altMessage += currentChar;
+                        }
+                    }
+
+                    message = altMessage;
 
                     // when add to queue, use clientID and timestamp
-                    String clientID = incomingPacket.getAddress().getHostAddress() + ":" + incomingPacket.getPort();
-                    String store = clientID + "$" + timeStamp;
-                    messageQueue.add(store);
-                    System.out.println(CYAN + "Client buzzed: " + store + RESET);
+                    messageQueue.add(message);
+                    System.out.println(CYAN + "Client buzzed: " + message + RESET);
                     Thread.sleep(5);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -142,9 +165,12 @@ public class Server {
         BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-        String clientIP = clientSocket.getInetAddress().getHostAddress();
-        int clientPort = clientSocket.getPort();
-        String clientID = clientIP + ":" + clientPort;
+        // String clientIP = clientSocket.getInetAddress().getHostAddress();
+        // int clientPort = clientSocket.getPort();
+        // String clientID = clientIP + ":" + clientPort;
+
+        String clientID = "" + currentIDIteration;
+        currentIDIteration++;
 
         ClientInfo info = new ClientInfo(clientID, clientSocket, in, out);
         clientSockets.put(clientID, info);
@@ -189,9 +215,16 @@ public class Server {
         // Thread for polling, stays constantly open because it will just receive
 
         while (true) {
-            // wait for clients to buzz
             gameState = GameState.POLLING;
+
+            // Send "next question" message out to clients
             sendNext();
+
+            // sending question
+            sendQuestion();
+
+            // switch game state to polling waiting for clients to buzz
+            gameState = GameState.POLLING;
 
             // waiting for 15 seconds
             System.out.println(GREEN + "Polling for 15 seconds..." + RESET);
@@ -214,7 +247,7 @@ public class Server {
                 System.out.println("Parts: " + Arrays.toString(parts));
 
                 String firstClientID = parts[0]; // first id in queue
-                long minTime = Long.parseLong(parts[1]); // first timestamp in queue
+                long minTime = Long.valueOf(parts[1]); // first timestamp in queue
 
                 // find first client who buzzed
                 while (!messageQueue.isEmpty()) {
@@ -264,10 +297,9 @@ public class Server {
             System.out.println("Showing answers...");
             int timeToShowAnswers = 5000;
             Thread.sleep(timeToShowAnswers);
+
             // TODO show answers
 
-            // TODO move to next question; send "next" to all clients
-            sendNext();
         }
     }
 
@@ -279,10 +311,11 @@ public class Server {
     }
 
     private void sendQuestion() {
+        currentQuestion++;
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
             // TODO send question
-            info.out.println("Question: " + currentQuestion);
+            info.out.println(new clientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
         }
     }
 

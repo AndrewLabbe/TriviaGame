@@ -7,7 +7,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 
 public class Client {
     private int clientPort;
@@ -79,7 +78,8 @@ public class Client {
 
     private void buzz() throws UnknownHostException {
         long timeStamp = System.currentTimeMillis();
-        byte[] buffer = ByteBuffer.allocate(Long.BYTES).putLong(timeStamp).array();
+        String message = clientID + "$" + timeStamp;
+        byte[] buffer = message.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         // send pack with content of timestamp
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(this.serverIP),
                 this.serverPortUDP);
@@ -121,7 +121,7 @@ public class Client {
                     buzz();
                 } else {
                     // assume its a question
-                    System.out.println("Question: " + serverMessage);
+                    System.out.println(serverMessage);
                 }
             }
             Thread.sleep(10);
