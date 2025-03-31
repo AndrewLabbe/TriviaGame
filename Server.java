@@ -314,7 +314,7 @@ public class Server {
         currentQuestion++;
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
-            // TODO send question
+            // TODO send question as serialized packet
             info.out.println(new clientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
         }
     }
