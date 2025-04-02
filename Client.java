@@ -98,14 +98,21 @@ public class Client {
             if (this.in.ready()) {
                 String serverMessage = this.in.readLine();
                 if (serverMessage.equals("ack")) {
-                    System.out.println("Server says: " + serverMessage);
-                } else if (serverMessage.equals("negative-ack")) {
+                    System.out.println(serverMessage + ": You buzzed first");
+                    // TODO allowed to answer
+                } else if (serverMessage.equals(serverMessage + ": negative-ack")) {
                     System.out.println("Server says: " + serverMessage);
                 } else if (serverMessage.equals("correct")) {
                     System.out.println("Got question correct +10");
+                    score += 10;
                 } else if (serverMessage.equals("wrong")) {
                     System.out.println("Got question wrong -10");
-                } else if (serverMessage.equals("next")) {
+                    score -= 10;
+                }else if (serverMessage.equals("none")) {
+                    System.out.println("Did not answer -20");
+                    score -= 20;
+                }
+                 else if (serverMessage.equals("next")) {
                     System.out.println("Moving to next question...");
                     new Thread() {
                         public void run() {
@@ -113,16 +120,16 @@ public class Client {
                                 Thread.sleep(2000);
                                 System.out.println("Buzzing in...");
                                 buzz();
+                                // TODO Allow buzing in
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
                     }.start();
                     buzz();
-                } else {
+                } else { // TODO add a try catch to make sure its a question
                     // assume its a question
-                    System.out.println(serverMessage);
-                    printServerQuestion(ClientQuestion.deserialize(serverMessage.getBytes()));
+                    printServerQuestion(ClientQuestion.deserialize(serverMessage));
                 }
             }
             Thread.sleep(10);

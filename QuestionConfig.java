@@ -11,7 +11,7 @@ public class QuestionConfig {
         this.configPath = configPath;
     }
 
-    public ServerQuestion[] parseConfig() {
+    public ServerQuestion[] getQuestionsAsArray() {
         ArrayList<ServerQuestion> questions = new  ArrayList<ServerQuestion>();
 
         String currQ = null;
@@ -59,6 +59,7 @@ public class QuestionConfig {
                     currQ = null;
                     currAnswers.clear();
                     correctIndex = -1;
+                    System.out.println("Added question: " + questions.get(questions.size()-1).getQuestionText());
                 // if anything else then config is improper
                 } else {
                     System.err.println("Improper config file format question not terminated with ';'. Exiting...");
@@ -81,7 +82,7 @@ public class QuestionConfig {
 
     public static void main(String[] args) {
         QuestionConfig questionConfig = new QuestionConfig("questions.txt");
-        ServerQuestion[] questions = questionConfig.parseConfig();
+        ServerQuestion[] questions = questionConfig.getQuestionsAsArray();
         for(ServerQuestion q : questions) {
             System.out.println(q.getQuestionText());
             for(String a : q.getAnswers()) {

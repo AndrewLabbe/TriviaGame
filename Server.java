@@ -21,12 +21,14 @@ public class Server {
     public static final String CYAN = "\u001B[36m";
     public static final String WHITE = "\u001B[37m";
 
-    private static ServerQuestion[] questionList = {
-        new ServerQuestion("Question 1", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-        new ServerQuestion("Question 2", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-        new ServerQuestion("Question 3", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-        new ServerQuestion("Question 4", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-    };
+    // private static ServerQuestion[] questionList = {
+    //     new ServerQuestion("Question 1: What is a fuzzy animal", new String[]{"bear", "lizard", "turtle"}, 0),
+    //     new ServerQuestion("Question 2: What is the name of a rock", new String[]{"dog", "cat", "rock"}, 0),
+    //     new ServerQuestion("Question 3", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+    //     new ServerQuestion("Question 4", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
+    // };
+
+    private static ServerQuestion[] questionList;
 
     public int currentIDIteration = 0;
 
@@ -60,6 +62,9 @@ public class Server {
             e.printStackTrace();
         }
 
+
+        QuestionConfig qConfig = new QuestionConfig("questions.txt");
+        questionList = qConfig.getQuestionsAsArray();
     }
 
     public void createUDPPollingThread() {
@@ -207,23 +212,22 @@ public class Server {
 
         // TODO process for managing when to stop waiting for clients
         gameState = GameState.WAITING_FOR_PLAYERS;
-        int secondForJoin = 10;
-        System.out.println(GREEN + "Waiting for clients to join for " + secondForJoin + " seconds..." + RESET);
-        Thread.sleep(secondForJoin * 1000);
+        int secondsForJoin = 10;
+        System.out.println(GREEN + "Waiting for clients to join for " + secondsForJoin + " seconds..." + RESET);
+        Thread.sleep(secondsForJoin * 1000);
 
         // Thread for polling, stays constantly open because it will just receive
-
+ 
+        // TODO index out of bound cause we dont check when out of questions
+        int numQuestion = questionList.length; // TODO implement
         while (true) {
-            gameState = GameState.POLLING;
-
-            // Send "next question" message out to clients
-            sendNext();
-
-            // sending question
-            sendQuestion();
-
             // switch game state to polling waiting for clients to buzz
             gameState = GameState.POLLING;
+            // Send "next question" message out to clients
+            sendNext();
+            
+            // sending question
+            sendQuestion();
 
             // waiting for 15 seconds
             System.out.println(GREEN + "Polling for 15 seconds..." + RESET);
@@ -283,12 +287,15 @@ public class Server {
                     String response = firstClient.in.readLine();
                     System.out.println("Client answered: " + response);
                     // TODO if correct +10 points and send "correct"
-                    firstClient.out.println("Correct! +10");
+                    // firstClient.out.println("Correct! +10");
+                    firstClient.out.println("correct");
                     // TODO if wrong -10 points and send "wrong"
-                    firstClient.out.println("Wrong! -10");
+                    // firstClient.out.println("Wrong! -10");
+                    firstClient.out.println("wrong");
                 } else {
                     System.out.println("Client did not answer");
-                    firstClient.out.println("No answer! -20");
+                    // firstClient.out.println("No answer! -20");
+                    firstClient.out.println("none");
                     // TODO -20 points
                 }
             }
@@ -311,6 +318,8 @@ public class Server {
 
     private void sendQuestion() {
         currentQuestion++;
+        System.out.println("Sending question: " + currentQuestion + questionList[currentQuestion].getQuestionText());
+        System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
             info.out.println(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
