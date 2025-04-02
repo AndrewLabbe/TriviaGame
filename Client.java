@@ -93,7 +93,7 @@ public class Client {
     }
 
     // TODO Possible input {"ack", "negative-ack", "correct", "wrong", "next"}
-    private void processResponse() throws IOException, InterruptedException {
+    private void processResponse() throws IOException, InterruptedException, ClassNotFoundException {
         while (true) {
             if (this.in.ready()) {
                 String serverMessage = this.in.readLine();
@@ -122,9 +122,17 @@ public class Client {
                 } else {
                     // assume its a question
                     System.out.println(serverMessage);
+                    printServerQuestion(ClientQuestion.deserialize(serverMessage.getBytes()));
                 }
             }
             Thread.sleep(10);
+        }
+    }
+
+    public void printServerQuestion(ClientQuestion cq){
+        System.out.println(cq.getQuestionText());
+        for (String choice : cq.getAnswers()) {
+            System.out.println(choice);
         }
     }
 

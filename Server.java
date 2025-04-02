@@ -313,8 +313,8 @@ public class Server {
         currentQuestion++;
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
-            // TODO send question as serialized packet
-            info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
+            info.out.println(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+            // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
         }
     }
 
