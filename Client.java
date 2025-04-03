@@ -66,10 +66,9 @@ public class Client {
         out.println(this.username);
         String message = in.readLine();
         if(message == null) {
-            System.out.println("Client may have disconnected during initialization, skipping.");
-            return;
-        }
-        if(message.toLowerCase().startsWith("REJECT")) {
+            System.out.println("Server may have disconnected exiting...");
+            System.exit(-1);
+        }else if(message.toLowerCase().startsWith("REJECT")) {
             System.out.println("Username exists/username active");
             System.exit(-1);
         }
@@ -146,6 +145,7 @@ public class Client {
                     buzz();
                 } else { // TODO add a try catch to make sure its a question
                     // assume its a question
+                    System.out.println("ASSUMED QUESTION=" + serverMessage);
                     printServerQuestion(ClientQuestion.deserialize(serverMessage));
                 }
             }
