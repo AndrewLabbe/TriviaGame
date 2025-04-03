@@ -173,6 +173,7 @@ public class Server {
         // int clientPort = clientSocket.getPort();
         // String clientID = clientIP + ":" + clientPort;
 
+        // TODO update how clientID is tracked
         String clientID = "" + currentIDIteration;
         currentIDIteration++;
 
@@ -257,7 +258,7 @@ public class Server {
                     parts = messageQueue.poll().split("\\$");
                     String clientID = parts[0];
                     long timeStamp = Long.parseLong(parts[1]);
-                    if (timeStamp < minTime) {
+                    if (timeStamp < minTime && clientSockets.get(clientID).isAlive()) {
                         minTime = timeStamp;
                         firstClientID = clientID;
                     }
@@ -286,17 +287,28 @@ public class Server {
                 if (firstClient.in.ready()) {
                     String response = firstClient.in.readLine();
                     System.out.println("Client answered: " + response);
-                    // TODO if correct +10 points and send "correct"
-                    // firstClient.out.println("Correct! +10");
-                    firstClient.out.println("correct");
-                    // TODO if wrong -10 points and send "wrong"
-                    // firstClient.out.println("Wrong! -10");
-                    firstClient.out.println("wrong");
+
+                    int index = -1;
+                    try{
+                        index = Integer.parseInt(response);
+
+                        if(index == questionList[currentQuestion].getCorrectQuestionIndex()){
+                            firstClient.out.println("correct");
+                            firstClient.score += 10;
+                        }
+                        else{
+                            firstClient.out.println("wrong");
+                            firstClient.score -= 10;
+                        }
+                    }
+                    catch(NumberFormatException e){
+                        System.out.println(RED + "Incorrect format of Client response; response ignored no points lost..." + RESET);
+                    }
+
                 } else {
                     System.out.println("Client did not answer");
-                    // firstClient.out.println("No answer! -20");
                     firstClient.out.println("none");
-                    // TODO -20 points
+                    firstClient.score -= 20;
                 }
             }
             gameState = GameState.SHOWING_ANSWERS;
