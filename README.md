@@ -8,12 +8,13 @@ LEFT TODO
 Small Changes
 
 - End quiz when out of questions
-- Have score server side (ClientInfo)
 
 Big Things
 
 - Kill switch for server
 - **GUI**
+- Client does not quit if server quits
+
 
 Doc says with no context:
 (You would need to figure out a way so that server doesn’t get stuck in a deadlock or an infinite wait.)
