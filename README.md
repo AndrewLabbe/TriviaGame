@@ -20,6 +20,7 @@ Big Things
   - packet should include what question its for
  
 - Not allow symbols in username (Especially $, only allowed is a-z A-Z 1-9)
+- When the client joins middle of question if it joins late it will recieve gamestate and will not know what the question or if it can poll
 
 
 alt idea for ip:port TCP not binding
