@@ -48,7 +48,6 @@ public class Client {
         // create the connection, in and out
         // Socket socket = new Socket("localhost", 9090);
 
-
         Socket socket = new Socket(this.serverIP, this.serverPortTCP);
         System.out.println("Starting tcp thread on port: " + socket.getPort());
 
@@ -126,6 +125,9 @@ public class Client {
                 }
                  else if (serverMessage.equals("next")) {
                     System.out.println("Moving to next question...");
+                } else if(serverMessage.toLowerCase().startsWith("question")){ // TODO add a try catch to make sure its a question
+                    serverMessage = serverMessage.substring("question".length());
+                    printServerQuestion(ClientQuestion.deserialize(serverMessage));
                     new Thread() {
                         public void run() {
                             try {
@@ -138,10 +140,6 @@ public class Client {
                             }
                         }
                     }.start();
-                    buzz();
-                } else if(serverMessage.toLowerCase().startsWith("question")){ // TODO add a try catch to make sure its a question
-                    serverMessage = serverMessage.substring("question".length());
-                    printServerQuestion(ClientQuestion.deserialize(serverMessage));
                 } else {
                     System.out.println("UNKNOWN MESSAGE: " + serverMessage);
                 }
@@ -159,12 +157,11 @@ public class Client {
 
     public static void main(String args[]) throws IOException, InterruptedException {
         // System.out.println(Arrays.toString(args));
-        if(args.length < 1) {
-            System.out.println("must provide username as arg, Client <username>");
-            System.exit(-1);
-        }
 
-        String username = args[0];
+        String username = "TestUser";
+        if(args.length > 0) {
+            username = args[0];
+        }
 
         Client client = new Client("localhost", 9080, 9090, username);
         client.establishConnectToServer();

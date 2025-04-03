@@ -211,7 +211,17 @@ public class Server {
                 info.recievedFromClientsQueue.clear();
                 info.sendToClientQueue.clear();
                 info.clientSocket.setSoTimeout(1);
+
+                if(gameState == GameState.POLLING){
+                    info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+                }
                 while (true) {
+                    // send message first
+                    while(!info.sendToClientQueue.isEmpty()) {
+                        // System.out.println("sending: " + info.sendToClientQueue.peek());
+                        out.println(info.sendToClientQueue.poll());
+                    }
+
                     // check if client has sent a message
                     try {
                         try {
@@ -227,12 +237,9 @@ public class Server {
                         continue;
                     } catch(SocketTimeoutException e ) {
                         // wait one second to readline if timeout in 1 second just move on
-                        }
-                    while(!info.sendToClientQueue.isEmpty()) {
-                        // System.out.println("sending: " + info.sendToClientQueue.peek());
-                        out.println(info.sendToClientQueue.poll());
                     }
                     
+                    Thread.sleep(10);
                 } catch(SocketException e) {
                     System.out.println(RED + "Socket Exception on client "+ info.getClientUsername() + RESET);
                     info.setActive(false);

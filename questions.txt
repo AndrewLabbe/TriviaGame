@@ -15,3 +15,30 @@ This is question 2
 -Answer 4 d
 =1
 ;
+
+
+This is question 3
+-Answer 1 A
+-Answer 2 B
+-Answer 3 C
+-Answer 4 D
+=1
+;
+
+
+This is question 4
+-Answer 1 e
+-Answer 2 f
+-Answer 3 g
+-Answer 4 h
+=1
+;
+
+
+This is question 5
+-Answer 1 E
+-Answer 2 F
+-Answer 3 G
+-Answer 4 H
+=1
+;
