@@ -65,8 +65,13 @@ public class Client {
         // handshake
         out.println("Hello I would like to connect");
         out.println(this.username);
+        String message = in.readLine();
+        if(message.toLowerCase().startsWith("REJECT")) {
+            System.out.println("Username exists/username active");
+            System.exit(-1);
+        }
         // assign client id
-        this.clientID = in.readLine();
+        this.clientID = message;
         System.out.println("Server assigned Client ID: " + this.clientID);
 
         // listening/sending thread

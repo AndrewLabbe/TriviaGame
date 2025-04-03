@@ -191,6 +191,11 @@ public class Server {
         
         for (ClientInfo tmpInfo : clientSockets.values()) {
             if (tmpInfo.isARejoin(IP, port)) {
+                if(tmpInfo.isAlive()) {
+                    out.println("REJECT: user already active under username:IP combo");
+                    return;
+                }
+
                 System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
                 hasConnectedB4 = true;
                 tmpInfo.setActive(true);
