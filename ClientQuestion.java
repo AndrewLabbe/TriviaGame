@@ -1,11 +1,16 @@
+
+import com.sun.jdi.IntegerType;
+
 public class ClientQuestion {
     
     private String questionText;
     private String[] answers;
+    private int questionIndex;
 
-    public ClientQuestion(String questionText, String[] answers){
+    public ClientQuestion(String questionText, String[] answers, int questionIndex){
         this.questionText = questionText;
         this.answers = answers;
+        this.questionIndex = questionIndex;
     }
 
     public String getQuestionText() {
@@ -16,8 +21,8 @@ public class ClientQuestion {
         return answers;
     }
 
-    public static ClientQuestion convertQuestion(ServerQuestion sq){
-        return new ClientQuestion(sq.getQuestionText(), sq.getAnswers());
+    public static ClientQuestion convertQuestion(ServerQuestion sq, int questionIndex){
+        return new ClientQuestion(sq.getQuestionText(), sq.getAnswers(), questionIndex);
     }
 
     // public static byte[] serialize(final ClientQuestion obj) {
@@ -46,12 +51,15 @@ public class ClientQuestion {
      * @return
      */
     public static String serialize(final ClientQuestion q) {
-        return q.questionText + "$" + String.join(";", q.answers);
+        return q.questionText + "$" + String.join(";", q.answers) + "$" + q.questionIndex;
     }
-
 
     public static ClientQuestion deserialize(String s) {
         String[] parts = s.split("\\$");
-        return new ClientQuestion(parts[0], parts[1].split(";"));
+        return new ClientQuestion(parts[0], parts[1].split(";"), Integer.parseInt(parts[2]));
+    }
+
+    public int getQuestionIndex() {
+        return questionIndex;
     }
 }

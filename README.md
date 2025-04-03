@@ -11,16 +11,12 @@ Small Changes
 
 Big Things
 
-- Kill switch for server
+- Allow Client to answer Server's questions
+- Cases for server to use kill switch on Client
 - **GUI**
-- Client does not quit if server quits (add graceful quit if client runs b4 server and errors with try/catch)
-- If no users are alive then what?
-
-- If packet out of order and the server recieves it after moving to new question, the server needs to skip that packet because it was for an old question
-  - packet should include what question its for
- 
 - Not allow symbols in username (Especially $, only allowed is a-z A-Z 1-9)
 
+* NOTE - The in.ready() has been removed from client side in processResponse(), might throw errors
 
 alt idea for ip:port TCP not binding
 serverSocket.setReuseAddress(true);

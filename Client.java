@@ -9,6 +9,15 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class Client {
+    public static final String RESET = "\u001B[0m";
+    public static final String RED = "\u001B[31m";
+    public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
+    public static final String MAGENTA = "\u001B[35m";
+    public static final String CYAN = "\u001B[36m";
+    public static final String WHITE = "\u001B[37m";
+
     private String serverIP;
     private int serverPortTCP;
     private int serverPortUDP;
@@ -17,6 +26,8 @@ public class Client {
 
     private BufferedReader in;
     private PrintWriter out;
+
+    private ClientQuestion q;
     
     private int score = 0;
 
@@ -71,7 +82,7 @@ public class Client {
 
         // listening/sending thread
         // Send message to the server
-        out.println("Status: " + message + "!");
+        System.out.println("Status: " + message + "!");
         clientGameLoop();
     }
 
@@ -87,7 +98,7 @@ public class Client {
     private void buzz() throws UnknownHostException {
         long timeStamp = System.currentTimeMillis();
         System.out.println("My username: " + username);
-        String message = username + "$" + timeStamp;
+        String message = username + "$" + timeStamp + "$" + q.getQuestionIndex();
         byte[] buffer = message.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         // send pack with content of timestamp
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(this.serverIP),
@@ -104,48 +115,53 @@ public class Client {
     // TODO Possible input {"ack", "negative-ack", "correct", "wrong", "next"}
     private void processResponse() throws IOException, InterruptedException, ClassNotFoundException {
         System.out.println("READY TO RECIEVE FROM SERVER");
+        String serverMessage = "";
         while (true) {
-            if (this.in.ready()) {
-                String serverMessage = this.in.readLine();
-                // System.out.println(serverMessage);
-                if (serverMessage.equals("ack")) {
-                    System.out.println(serverMessage + ": You buzzed first");
-                    // TODO allowed to answer
-                } else if (serverMessage.equals("negative-ack")) {
-                    System.out.println("Server says: " + serverMessage);
-                } else if (serverMessage.equals("correct")) {
-                    System.out.println("Got question correct +10");
-                    score += 10;
-                } else if (serverMessage.equals("wrong")) {
-                    System.out.println("Got question wrong -10");
-                    score -= 10;
-                }else if (serverMessage.equals("none")) {
-                    System.out.println("Did not answer -20");
-                    score -= 20;
-                }
-                 else if (serverMessage.equals("next")) {
-                    System.out.println("Moving to next question...");
-                } else if(serverMessage.toLowerCase().startsWith("question")){ // TODO add a try catch to make sure its a question
-                    serverMessage = serverMessage.substring("question".length());
-                    printServerQuestion(ClientQuestion.deserialize(serverMessage));
-                    new Thread() {
-                        public void run() {
-                            try {
-                                Thread.sleep(2000);
-                                System.out.println("Buzzing in...");
-                                buzz();
-                                // TODO Allow buzing in
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }.start();
-                } else {
-                    System.out.println("UNKNOWN MESSAGE: " + serverMessage);
-                }
+            try {
+                serverMessage = in.readLine();
+            } catch (Exception e) {
+                System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
+                System.exit(-1);
             }
+        
+            if (serverMessage.equalsIgnoreCase("kill")) {
+                System.out.println(RED + "You have been removed from the game by the server." + RESET);
+                System.exit(0);
+            } else if (serverMessage.equals("ack")) {
+                System.out.println("ACK: You buzzed first.");
+            } else if (serverMessage.equals("negative-ack")) {
+                System.out.println("You were not the first to buzz.");
+            } else if (serverMessage.equals("correct")) {
+                System.out.println("Correct! +10 points.");
+                score += 10;
+            } else if (serverMessage.equals("wrong")) {
+                System.out.println("Incorrect. -10 points.");
+                score -= 10;
+            } else if (serverMessage.equals("none")) {
+                System.out.println("No answer. -20 points.");
+                score -= 20;
+            } else if (serverMessage.equals("next")) {
+                System.out.println("Next question...");
+            } else if (serverMessage.toLowerCase().startsWith("question")) {
+                serverMessage = serverMessage.substring("question".length());
+                q = ClientQuestion.deserialize(serverMessage);
+                printServerQuestion(q);
+        
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(2000);
+                        System.out.println("Buzzing in...");
+                        buzz();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+            } else {
+                System.out.println("UNKNOWN MESSAGE: " + serverMessage);
+            }
+        
             Thread.sleep(10);
-        }
+        }        
     }
 
     public void printServerQuestion(ClientQuestion cq){

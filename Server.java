@@ -103,7 +103,13 @@ public class Server {
                         }
                     }
 
-                    message = validString;
+                    String[] parts = validString.split("\\$");
+                    int questionIndex = Integer.parseInt(parts[2]);
+                    if(questionIndex != currentQuestion){
+                        System.out.println(YELLOW + "Recieved buzz from earlier question, moving on and ignoring." + RESET);
+                        continue;
+                    }
+                    message = parts[0] + "$" + parts[1];
 
                     // when add to queue, use clientUsername and timestamp
                     UDPMessageQueue.add(message);
@@ -213,7 +219,7 @@ public class Server {
                 info.clientSocket.setSoTimeout(1);
 
                 if(gameState == GameState.POLLING){
-                    info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+                    info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
                 while (true) {
                     // send message first
@@ -268,9 +274,16 @@ public class Server {
 
         // TODO process for managing when to stop waiting for clients
         gameState = GameState.WAITING_FOR_PLAYERS;
+        System.out.println(MAGENTA + "Currently waiting for players to join..." + RESET);
+
+        while(clientSockets.size() == 0){
+            Thread.sleep(1000);
+        }
+
         int secondsForJoin = 10;
-        System.out.println(GREEN + "Waiting for clients to join for " + secondsForJoin + " seconds..." + RESET);
+        System.out.println(GREEN + "At least one client has joined, waiting for additional clients to join for " + secondsForJoin + " seconds..." + RESET);
         Thread.sleep(secondsForJoin * 1000);
+        
 
         // Thread for polling, stays constantly open because it will just receive
  
@@ -398,7 +411,7 @@ public class Server {
             System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
             for (String clientUsername : clientSockets.keySet()) {
                 ClientInfo info = clientSockets.get(clientUsername);
-                info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+                info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
             }
         }
