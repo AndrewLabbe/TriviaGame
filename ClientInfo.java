@@ -56,12 +56,9 @@ public class ClientInfo {
         return this.isAlive;
     }
 
-    public boolean isARejoin(String clientID, int ip) {
-        return this.TCPIP.equals(ip) && this.clientID.equals(clientID);
-    }
-
-    public boolean isSameIPPort(Socket socket) {
-        return isARejoin(socket.getInetAddress().getHostAddress(), socket.getPort());
+    public boolean isARejoin(String clientID, String ip) {
+        System.out.println("compared clientid " + clientID);
+        return this.TCPIP.equals(TCPIP) && this.clientID.equals(clientID);
     }
 
 }
