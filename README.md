@@ -14,6 +14,7 @@ Big Things
 - Kill switch for server
 - **GUI**
 - Client does not quit if server quits
+- If no users are alive then what?
 
 
 Doc says with no context:
