@@ -18,6 +18,8 @@ Big Things
 
 - If packet out of order and the server recieves it after moving to new question, the server needs to skip that packet because it was for an old question
   - packet should include what question its for
+ 
+- Not allow symbols in username (Especially $, only allowed is a-z A-Z 1-9)
 
 
 Doc says with no context:
