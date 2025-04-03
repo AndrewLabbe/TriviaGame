@@ -7,6 +7,7 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,52 +76,36 @@ public class Server {
 
             while (true) {
                 try {
-                    // TODO if not polling it still will block on incoming packet then quit
-                    // System.out.println("What is the game state: " + gameState);
-                    // if (gameState != GameState.POLLING) {
-                    // System.out.println("Game state is not polling, closing UDP socket");
-                    // UDPDatagramSocket.close();
-                    // return;
-                    // }
-
                     // create datagram packet using incoming data as paramater
                     System.out.println(YELLOW + "Listening for a new UDP packet..." + RESET);
                     DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                     UDPDatagramSocket.receive(incomingPacket);
-                    // TODO see above TODO
-                    if (gameState != GameState.POLLING) {
-                        UDPDatagramSocket.receive(incomingPacket);
 
-                        byte[] data = incomingPacket.getData();
-                        System.out.println("Data: " + data);
+                    // if recieve while not polling skip
+                    if (gameState != GameState.POLLING) {
                         System.out.println("Game state is not polling, ignoring packet that came in");
-                        // System.out.println("Game state is not polling, closing UDP socket");
-                        // UDPDatagramSocket.close();
                         continue;
                     }
-                    
-                    // accept packet
-                    UDPDatagramSocket.receive(incomingPacket);
 
                     byte[] data = incomingPacket.getData();
                     // try to convert to long
                     String message = new String(data, java.nio.charset.StandardCharsets.UTF_8);
-                    String altMessage = "";
+                    String validString = ""; 
 
                     // bytes include hidden characters, manual parsing needed
                     for (int i = 0; i < message.length(); i++) {
                         char currentChar = message.charAt(i);
                         
                         // Check if the character is '$' or a digit
-                        if (currentChar == '$' || Character.isDigit(currentChar)) {
+                        if (currentChar == '$' || Character.isDigit(currentChar) || Character.isLetter(currentChar)) {
                             // Process the character (here we print it)
-                            altMessage += currentChar;
+                            validString += currentChar;
                         }
                     }
 
-                    message = altMessage;
+                    message = validString;
 
-                    // when add to queue, use clientID and timestamp
+                    // when add to queue, use clientUsername and timestamp
                     UDPMessageQueue.add(message);
                     System.out.println(CYAN + "Client buzzed: " + message + RESET);
                     Thread.sleep(5);
@@ -173,9 +158,9 @@ public class Server {
 
         // String clientIP = clientSocket.getInetAddress().getHostAddress();
         // int clientPort = clientSocket.getPort();
-        // String clientID = clientIP + ":" + clientPort;
+        // String clientUsername = clientIP + ":" + clientPort;
         
-        // String clientID = "" + currentIDIteration;
+        // String clientUsername = "" + currentIDIteration;
         // currentIDIteration++;
 
         String IP = clientSocket.getInetAddress().getHostAddress();
@@ -187,11 +172,11 @@ public class Server {
         // assign client ID
         System.out.println("Client says: " + in.readLine());
         // Client will send username as second send
-        String clientID = in.readLine();
+        String clientUsername = in.readLine();
         // out.println(info.getClientID());
         
         for (ClientInfo tmpInfo : clientSockets.values()) {
-            if (tmpInfo.isARejoin(clientID, IP)) {
+            if (tmpInfo.isARejoin(clientUsername, IP)) {
                 if(tmpInfo.isAlive()) {
                     out.println("REJECT: user already active under username:IP combo");
                     return;
@@ -206,9 +191,9 @@ public class Server {
         }
 
         if(!hasConnectedB4) {
-            ClientInfo info = new ClientInfo(clientID, clientSocket, IP, port);
-            clientSockets.put(clientID, info);
-            System.out.println(GREEN + "New client connected with ID: " + clientID + RESET);
+            ClientInfo info = new ClientInfo(clientUsername, clientSocket, IP, port);
+            clientSockets.put(clientUsername, info);
+            System.out.println(GREEN + "New client connected with ID: " + clientUsername + RESET);
             startClientThread(info, in, out);
         }
 
@@ -222,31 +207,39 @@ public class Server {
         // create new thread
         new Thread(() -> {
             try {
-                out.println("ACCEPTED: clientID: " + info.getClientID());
+                out.println("ACCEPTED: clientUsername: " + info.getClientUsername());
                 info.recievedFromClientsQueue.clear();
                 info.sendToClientQueue.clear();
+                info.clientSocket.setSoTimeout(1);
                 while (true) {
                     // check if client has sent a message
                     try {
-                    
-                    String message = in.readLine(); // read the message
-                    
-                    if(message == null)
-                        throw new SocketException();
+                        try {
+                            String message = in.readLine(); // read the message
+                        
+                            if(message == null)
+                                throw new SocketException();
 
-                    info.recievedFromClientsQueue.add(message); // put message into queue to be read by gameloop
-                    System.out.println("Client says: " + message);
-                    
-                    while(!info.sendToClientQueue.isEmpty())
+                        info.recievedFromClientsQueue.add(message); // put message into queue to be read by gameloop
+                        System.out.println("Client says: " + message);
+
+                        Thread.sleep(10);
+                        continue;
+                    } catch(SocketTimeoutException e ) {
+                        // wait one second to readline if timeout in 1 second just move on
+                        }
+                    while(!info.sendToClientQueue.isEmpty()) {
+                        // System.out.println("sending: " + info.sendToClientQueue.peek());
                         out.println(info.sendToClientQueue.poll());
+                    }
                     
                 } catch(SocketException e) {
-                    System.out.println(RED + "Socket Exception on client "+ info.getClientID() + RESET);
+                    System.out.println(RED + "Socket Exception on client "+ info.getClientUsername() + RESET);
                     info.setActive(false);
                     break;
                 }
 
-                    Thread.sleep(10);
+                    // Thread.sleep(10);
                 }
                 
             } catch (IOException | InterruptedException e) { 
@@ -309,17 +302,17 @@ public class Server {
                 // find first client who buzzed
                 while (!UDPMessageQueue.isEmpty()) {
                     parts = UDPMessageQueue.poll().split("\\$");
-                    String clientID = parts[0];
+                    String clientUsername = parts[0];
                     long timeStamp = Long.parseLong(parts[1]);
-                    if (timeStamp < minTime && clientSockets.get(clientID).isAlive()) {
+                    if (timeStamp < minTime && clientSockets.get(clientUsername).isAlive()) {
                         minTime = timeStamp;
-                        firstClientID = clientID;
+                        firstClientID = clientUsername;
                     }
                 }
                 // response with "ack" for first client and "negative-ack" for others
-                for (String clientID : clientSockets.keySet()) {
-                    ClientInfo info = clientSockets.get(clientID);
-                    if (clientID.equals(firstClientID)) {
+                for (String clientUsername : clientSockets.keySet()) {
+                    ClientInfo info = clientSockets.get(clientUsername);
+                    if (clientUsername.equals(firstClientID)) {
                         info.queueSendMessage("ack");
                     } else {
                         info.queueSendMessage("negative-ack");
@@ -337,7 +330,10 @@ public class Server {
                  * So if we try to extract the client id from the incoming packet we will not
                  * find it in the map
                  */
-                if (!firstClient.recievedFromClientsQueue.isEmpty()) {
+                if(firstClient == null) {
+                    System.out.println("Null first client moving on");
+
+                } else if (!firstClient.recievedFromClientsQueue.isEmpty()) {
                     String response = firstClient.recievedFromClientsQueue.poll();
                     System.out.println("Client answered: " + response);
 
@@ -378,8 +374,8 @@ public class Server {
     }
 
     private void sendNext() {
-        for (String clientID : clientSockets.keySet()) {
-            ClientInfo info = clientSockets.get(clientID);
+        for (String clientUsername : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientUsername);
             info.queueSendMessage("next");
         }
         currentQuestion++;
@@ -393,9 +389,9 @@ public class Server {
         else{
             System.out.println(questionList[currentQuestion].getQuestionText());
             System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
-            for (String clientID : clientSockets.keySet()) {
-                ClientInfo info = clientSockets.get(clientID);
-                info.queueSendMessage(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+            for (String clientUsername : clientSockets.keySet()) {
+                ClientInfo info = clientSockets.get(clientUsername);
+                info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
                 // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
             }
         }

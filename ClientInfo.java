@@ -1,5 +1,5 @@
 import java.net.Socket;
-import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ClientInfo {
     public enum GameState {
@@ -9,15 +9,15 @@ public class ClientInfo {
         SHOWING_ANSWERS,
     }
 
-    private String clientID;
+    private String clientUsername;
     public Socket clientSocket;
     
 
     // public queue toClientQueue
     // public queue fromClientQueue
 
-    public PriorityQueue<String> sendToClientQueue = new PriorityQueue<String>();
-    public PriorityQueue<String> recievedFromClientsQueue = new PriorityQueue<String>();
+    public ConcurrentLinkedQueue<String> sendToClientQueue = new ConcurrentLinkedQueue<String>();
+    public ConcurrentLinkedQueue<String> recievedFromClientsQueue = new ConcurrentLinkedQueue<String>();
 
     public int score = 0;
 
@@ -27,8 +27,8 @@ public class ClientInfo {
     private String TCPIP;
     private int TCPPort;
 
-    public ClientInfo(String clientID, Socket clientSocket, String ip, int TCPPort) {
-        this.clientID = clientID;
+    public ClientInfo(String clientUsername, Socket clientSocket, String ip, int TCPPort) {
+        this.clientUsername = clientUsername;
         this.clientSocket = clientSocket;
         this.isAlive = true;
 
@@ -40,8 +40,8 @@ public class ClientInfo {
         sendToClientQueue.add(message);
     }
 
-    public String getClientID() {
-        return clientID;
+    public String getClientUsername() {
+        return clientUsername;
     }
 
     public int getScore() {
@@ -58,7 +58,7 @@ public class ClientInfo {
 
     public boolean isARejoin(String clientID, String ip) {
         System.out.println("compared clientid " + clientID);
-        return this.TCPIP.equals(TCPIP) && this.clientID.equals(clientID);
+        return this.TCPIP.equals(TCPIP) && this.clientUsername.equals(clientID);
     }
 
 }

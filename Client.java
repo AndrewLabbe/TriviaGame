@@ -9,7 +9,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class Client {
-    private int clientPortTCP;
     private String serverIP;
     private int serverPortTCP;
     private int serverPortUDP;
@@ -18,14 +17,12 @@ public class Client {
 
     private BufferedReader in;
     private PrintWriter out;
-
-    private String clientID;
+    
     private int score = 0;
 
     private String username;
 
     public Client(String serverIP, int serverPortTCP, int serverPortUDP, String username) {
-        this.clientPortTCP = clientPortTCP;
         this.serverIP = serverIP;
         this.serverPortTCP = serverPortTCP;
         this.serverPortUDP = serverPortUDP;
@@ -63,7 +60,7 @@ public class Client {
 
         // handshake
         out.println("Hello I would like to connect");
-        out.println(this.username);
+        out.println(this.username); // username = clientID
         String message = in.readLine();
         if(message == null) {
             System.out.println("Server may have disconnected exiting...");
@@ -72,14 +69,10 @@ public class Client {
             System.out.println("Username exists/username active");
             System.exit(-1);
         }
-        // assign client id
-        this.clientID = message;
-        System.out.println("Server assigned Client ID: " + this.clientID);
 
         // listening/sending thread
         // Send message to the server
-        out.println("Hello from client " + this.clientID + "!");
-
+        out.println("Status: " + message + "!");
         clientGameLoop();
     }
 
@@ -94,14 +87,15 @@ public class Client {
 
     private void buzz() throws UnknownHostException {
         long timeStamp = System.currentTimeMillis();
-        String message = clientID + "$" + timeStamp;
+        System.out.println("My username: " + username);
+        String message = username + "$" + timeStamp;
         byte[] buffer = message.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         // send pack with content of timestamp
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(this.serverIP),
                 this.serverPortUDP);
         // send packet
         try {
-            System.out.println("Sending Buzz Packet");
+            System.out.println("Sending Buzz Packet " + message);
             this.clientUDPSocket.send(packet);
         } catch (IOException e) {
             e.printStackTrace();
@@ -110,13 +104,15 @@ public class Client {
 
     // TODO Possible input {"ack", "negative-ack", "correct", "wrong", "next"}
     private void processResponse() throws IOException, InterruptedException, ClassNotFoundException {
+        System.out.println("READY TO RECIEVE FROM SERVER");
         while (true) {
             if (this.in.ready()) {
                 String serverMessage = this.in.readLine();
+                // System.out.println(serverMessage);
                 if (serverMessage.equals("ack")) {
                     System.out.println(serverMessage + ": You buzzed first");
                     // TODO allowed to answer
-                } else if (serverMessage.equals(serverMessage + ": negative-ack")) {
+                } else if (serverMessage.equals("negative-ack")) {
                     System.out.println("Server says: " + serverMessage);
                 } else if (serverMessage.equals("correct")) {
                     System.out.println("Got question correct +10");
@@ -143,10 +139,11 @@ public class Client {
                         }
                     }.start();
                     buzz();
-                } else { // TODO add a try catch to make sure its a question
-                    // assume its a question
-                    System.out.println("ASSUMED QUESTION=" + serverMessage);
+                } else if(serverMessage.toLowerCase().startsWith("question")){ // TODO add a try catch to make sure its a question
+                    serverMessage = serverMessage.substring("question".length());
                     printServerQuestion(ClientQuestion.deserialize(serverMessage));
+                } else {
+                    System.out.println("UNKNOWN MESSAGE: " + serverMessage);
                 }
             }
             Thread.sleep(10);
@@ -167,7 +164,7 @@ public class Client {
             System.exit(-1);
         }
 
-        String username =  args[0];
+        String username = args[0];
 
         Client client = new Client("localhost", 9080, 9090, username);
         client.establishConnectToServer();

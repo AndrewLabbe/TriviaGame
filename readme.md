@@ -13,13 +13,6 @@ Small Changes
 Big Things
 
 - Kill switch for server
-- Client Join and Leave as wanted (needs to retain state)
-  OPTIONS
-  
-  - (Best option) It can be based off IP:<PORT> store the IP and PORT in client info for TCP ONLY (I dont think the client is properly assigning the port we give to TCP)
-  - usernames
-- Keep list of active server **NEEDS TO KNOW IF CLIENT IS ACTIVE**  (Can check based on TCP connected or not maybe)
-  - Alternatively hearbeat system server pings client over tcp
 - **GUI**
 
 Doc says with no context:
