@@ -6,6 +6,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -177,32 +178,65 @@ public class Server {
         String clientID = "" + currentIDIteration;
         currentIDIteration++;
 
-        ClientInfo info = new ClientInfo(clientID, clientSocket, in, out);
-        clientSockets.put(clientID, info);
-        // assign client ID
-        System.out.println("Client says: " + in.readLine());
-        out.println(clientID);
+        String IP = clientSocket.getInetAddress().getHostAddress();
+        int port = clientSocket.getPort();
 
-        // create new thread
-        new Thread(() -> {
-            try {
-                clientThread(info);
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+        boolean hasConnectedB4 = false;
+        // Check if client already has existed
+        
+        for (ClientInfo tmpInfo : clientSockets.values()) {
+            if (tmpInfo.isSameIPPort(IP, port)) {
+                System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
+                hasConnectedB4 = true;
+                tmpInfo.setActive(true);
+                startClientThread(tmpInfo);
+                break;
             }
-        }).start();
+        }
+
+        if(!hasConnectedB4) {
+            ClientInfo info = new ClientInfo(clientID, clientSocket, in, out, IP, port);
+            clientSockets.put(clientID, info);
+            System.out.println(GREEN + "New client connected with ID: " + clientID + RESET);
+            startClientThread(info);
+        }
+
     }
 
     /*
      * The loop/thread that each client will individually run
      */
-    // TODO implement client game logic
-    private void clientThread(ClientInfo info) throws IOException, InterruptedException {
-        while (true) {
-            if (info.in.ready())
+
+    private void startClientThread(ClientInfo info) throws IOException, InterruptedException {
+        // create new thread
+        new Thread(() -> {
+            try {
+                // assign client ID
                 System.out.println("Client says: " + info.in.readLine());
-            Thread.sleep(10);
-        }
+                info.out.println(info.getClientID());
+
+                while (true) {
+                    // TODO client logic
+                    if (info.in.ready())
+                        System.out.println("Client says: " + info.in.readLine());
+                    Thread.sleep(10);
+                }
+                
+            } catch (IOException | InterruptedException e) { 
+                if(SocketException.class.isInstance(e)) {
+                    System.out.println(RED + "Socket Exception" + RESET);
+                } else {
+                    System.out.println("Socket exception check failed: Class="+ e.getClass().getName());
+                }
+
+                info.setActive(false); // TODO logic is not throwing an error
+
+                e.printStackTrace();
+                // will end thread if any exception
+                // TODO decide if all exceptions should quit or if say io exception should keep going
+            }
+        }).start();
+        
     }
 
     public void runGameLoop() throws InterruptedException, IOException {

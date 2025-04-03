@@ -13,28 +13,52 @@ public class ClientInfo {
     private String clientID;
     private Socket clientSocket;
     BufferedReader in;
-    PrintWriter out;
+
+    // TCP Connection print/read
+    public PrintWriter out;
     public int score = 0;
+
+    // public queue toClientQueue
+    // public queue fromClientQueue
+
     private boolean isAlive = false;
 
-    public ClientInfo(String clientID, Socket clientSocket, BufferedReader in, PrintWriter out) {
+    private String TCPIP;
+    private int TCPPort;
+
+    public ClientInfo(String clientID, Socket clientSocket, BufferedReader in, PrintWriter out, String ip, int port) {
         this.clientID = clientID;
         this.clientSocket = clientSocket;
         this.in = in;
         this.out = out;
         this.isAlive = true;
+
+        this.TCPIP = ip;
+        this.TCPPort = port;
+    }
+
+    public String getClientID() {
+        return clientID;
     }
 
     public int getScore() {
         return score;
     }
 
-    public void setStatus(boolean b){
+    public void setActive(boolean b){
         this.isAlive = b;
     }
 
     public boolean isAlive(){
         return this.isAlive;
+    }
+
+    public boolean isSameIPPort(String ip, int port) {
+        return this.TCPIP.equals(ip) && this.TCPPort == port;
+    }
+
+    public boolean isSameIPPort(Socket socket) {
+        return isSameIPPort(socket.getInetAddress().getHostAddress(), socket.getPort());
     }
 
 }

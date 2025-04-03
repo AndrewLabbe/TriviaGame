@@ -5,16 +5,17 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class Client {
-    private int clientPort;
+    private int clientPortTCP;
     private String serverIP;
     private int serverPortTCP;
     private int serverPortUDP;
 
-    private DatagramSocket clientSocket;
+    private DatagramSocket clientUDPSocket;
 
     private BufferedReader in;
     private PrintWriter out;
@@ -22,15 +23,15 @@ public class Client {
     private String clientID;
     private int score = 0;
 
-    public Client(int clientPort, String serverIP, int serverPortTCP, int serverPortUDP) {
-        this.clientPort = clientPort;
+    public Client(int clientPortTCP, String serverIP, int serverPortTCP, int serverPortUDP) {
+        this.clientPortTCP = clientPortTCP;
         this.serverIP = serverIP;
         this.serverPortTCP = serverPortTCP;
         this.serverPortUDP = serverPortUDP;
 
         // create udp socket
         try {
-            this.clientSocket = new DatagramSocket();
+            this.clientUDPSocket = new DatagramSocket();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -46,7 +47,14 @@ public class Client {
     public void establishConnectToServer() throws UnknownHostException, IOException, InterruptedException {
         // create the connection, in and out
         // Socket socket = new Socket("localhost", 9090);
-        Socket socket = new Socket(this.serverIP, this.serverPortTCP);
+        Socket socket = new Socket();
+        socket.bind(new InetSocketAddress(clientPortTCP)); // Bind to the specified client port
+        socket.connect(new InetSocketAddress(serverIP, serverPortTCP)); // Connect to the server
+
+        System.out.println("Connected to server at " + serverIP + ":" + serverPortTCP + " from client port " + clientPortTCP);
+        // Socket socket = new Socket(this.serverIP, this.serverPortTCP);
+        
+        // System.out.println("Starting tcp thread on port: " + socket.getLocalPort());
 
         // Setup output stream to send data to the server
         this.out = new PrintWriter(socket.getOutputStream(), true);
@@ -86,7 +94,7 @@ public class Client {
         // send packet
         try {
             System.out.println("Sending Buzz Packet");
-            this.clientSocket.send(packet);
+            this.clientUDPSocket.send(packet);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -144,7 +152,7 @@ public class Client {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        Client client = new Client(9000, "localhost", 9080, 9090);
+        Client client = new Client(9070, "localhost", 9080, 9090);
         client.establishConnectToServer();
     }
 
