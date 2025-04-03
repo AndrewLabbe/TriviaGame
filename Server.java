@@ -38,7 +38,7 @@ public class Server {
     }
 
     // set to -1 because game first increments value to move onto "first" question at index 0
-    private int currentQuestion = -1;
+    private int currentQuestion = 0;
     private GameState gameState = GameState.WAITING_FOR_PLAYERS;
 
     private int portTCP;
@@ -276,8 +276,6 @@ public class Server {
         while (true) {
             // switch game state to polling waiting for clients to buzz
             gameState = GameState.POLLING;
-            // Send "next question" message out to clients
-            sendNext();
             
             // sending question
             sendQuestion();
@@ -370,6 +368,9 @@ public class Server {
 
             // TODO show answers
 
+            // Send "next question" message out to clients
+            sendNext();
+
         }
     }
 
@@ -378,17 +379,23 @@ public class Server {
             ClientInfo info = clientSockets.get(clientID);
             info.queueSendMessage("next");
         }
+        currentQuestion++;
     }
 
     private void sendQuestion() {
-        currentQuestion++;
-        System.out.println("Sending question: " + currentQuestion + questionList[currentQuestion].getQuestionText());
-        System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
-        for (String clientID : clientSockets.keySet()) {
-            ClientInfo info = clientSockets.get(clientID);
-            info.queueSendMessage(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
-            // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
+        if(currentQuestion >= questionList.length){
+            System.out.println("No more questions, onto the final scores");
+            // TODO move to final gamestate
         }
+        else{
+            System.out.println(questionList[currentQuestion].getQuestionText());
+            System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
+            for (String clientID : clientSockets.keySet()) {
+                ClientInfo info = clientSockets.get(clientID);
+                info.queueSendMessage(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+                // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
+            }
+        }   
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {

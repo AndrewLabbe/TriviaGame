@@ -54,7 +54,7 @@ public class Client {
 
 
         Socket socket = new Socket(this.serverIP, this.serverPortTCP);
-        System.out.println("Starting tcp thread on port: " + socket.getLocalPort());
+        System.out.println("Starting tcp thread on port: " + socket.getPort());
 
         // Setup output stream to send data to the server
         this.out = new PrintWriter(socket.getOutputStream(), true);
