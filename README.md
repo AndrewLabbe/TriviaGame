@@ -13,7 +13,7 @@ Big Things
 
 - Kill switch for server
 - **GUI**
-- Client does not quit if server quits
+- Client does not quit if server quits (add graceful quit if client runs b4 server and errors with try/catch)
 - If no users are alive then what?
 
 
