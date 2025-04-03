@@ -222,11 +222,13 @@ public class Server {
         // create new thread
         new Thread(() -> {
             try {
+                out.println("ACCEPTED: clientID: " + info.getClientID());
+                info.recievedFromClientsQueue.clear();
+                info.sendToClientQueue.clear();
                 while (true) {
                     // check if client has sent a message
                     try {
                     
-
                     String message = in.readLine(); // read the message
                     
                     if(message == null)
@@ -396,7 +398,7 @@ public class Server {
                 info.queueSendMessage(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
                 // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
             }
-        }   
+        }
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
