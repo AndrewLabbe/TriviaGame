@@ -46,7 +46,7 @@ public class Server {
 
     private Map<String, ClientInfo> clientSockets = new HashMap<>();
 
-    private ConcurrentLinkedQueue<String> messageQueue = new ConcurrentLinkedQueue<String>();
+    private ConcurrentLinkedQueue<String> UDPMessageQueue = new ConcurrentLinkedQueue<String>();
 
     private ServerSocket serverTCPSocket;
     private DatagramSocket UDPDatagramSocket;
@@ -120,7 +120,7 @@ public class Server {
                     message = altMessage;
 
                     // when add to queue, use clientID and timestamp
-                    messageQueue.add(message);
+                    UDPMessageQueue.add(message);
                     System.out.println(CYAN + "Client buzzed: " + message + RESET);
                     Thread.sleep(5);
                 } catch (Exception e) {
@@ -173,32 +173,37 @@ public class Server {
         // String clientIP = clientSocket.getInetAddress().getHostAddress();
         // int clientPort = clientSocket.getPort();
         // String clientID = clientIP + ":" + clientPort;
-
-        // TODO update how clientID is tracked
-        String clientID = "" + currentIDIteration;
-        currentIDIteration++;
+        
+        // String clientID = "" + currentIDIteration;
+        // currentIDIteration++;
 
         String IP = clientSocket.getInetAddress().getHostAddress();
         int port = clientSocket.getPort();
 
         boolean hasConnectedB4 = false;
         // Check if client already has existed
+
+        // assign client ID
+        System.out.println("Client says: " + in.readLine());
+        // Client will send username as second send
+        String clientID = in.readLine();
+        // out.println(info.getClientID());
         
         for (ClientInfo tmpInfo : clientSockets.values()) {
-            if (tmpInfo.isSameIPPort(IP, port)) {
+            if (tmpInfo.isARejoin(IP, port)) {
                 System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
                 hasConnectedB4 = true;
                 tmpInfo.setActive(true);
-                startClientThread(tmpInfo);
+                startClientThread(tmpInfo, in, out);
                 break;
             }
         }
 
         if(!hasConnectedB4) {
-            ClientInfo info = new ClientInfo(clientID, clientSocket, in, out, IP, port);
+            ClientInfo info = new ClientInfo(clientID, clientSocket, IP, port);
             clientSockets.put(clientID, info);
             System.out.println(GREEN + "New client connected with ID: " + clientID + RESET);
-            startClientThread(info);
+            startClientThread(info, in, out);
         }
 
     }
@@ -207,28 +212,36 @@ public class Server {
      * The loop/thread that each client will individually run
      */
 
-    private void startClientThread(ClientInfo info) throws IOException, InterruptedException {
+    private void startClientThread(ClientInfo info, BufferedReader in, PrintWriter out) throws IOException, InterruptedException {
         // create new thread
         new Thread(() -> {
             try {
-                // assign client ID
-                System.out.println("Client says: " + info.in.readLine());
-                info.out.println(info.getClientID());
-
                 while (true) {
-                    // TODO client logic
-                    if (info.in.ready())
-                        System.out.println("Client says: " + info.in.readLine());
+                    // check if client has sent a message
+                    try {
+                    
+
+                    String message = in.readLine(); // read the message
+                    
+                    if(message == null)
+                        throw new SocketException();
+
+                    info.recievedFromClientsQueue.add(message); // put message into queue to be read by gameloop
+                    System.out.println("Client says: " + message);
+                    
+                    while(!info.sendToClientQueue.isEmpty())
+                        out.println(info.sendToClientQueue.poll());
+                    
+                } catch(SocketException e) {
+                    System.out.println(RED + "Socket Exception on client "+ info.getClientID() + RESET);
+                    info.setActive(false);
+                    break;
+                }
+
                     Thread.sleep(10);
                 }
                 
             } catch (IOException | InterruptedException e) { 
-                if(SocketException.class.isInstance(e)) {
-                    System.out.println(RED + "Socket Exception" + RESET);
-                } else {
-                    System.out.println("Socket exception check failed: Class="+ e.getClass().getName());
-                }
-
                 info.setActive(false); // TODO logic is not throwing an error
 
                 e.printStackTrace();
@@ -273,23 +286,23 @@ public class Server {
             System.out.println(GREEN + "Polling done, moving to client answering..." + RESET);
 
             // parse queue for who answered first
-            if (messageQueue.isEmpty()) {
+            if (UDPMessageQueue.isEmpty()) {
                 System.out.println(RED + "No clients buzzed, not showing answers next question..." + RESET);
                 // TODO what to do when no clients answered; send "next" move to next question
                 sendNext();
                 continue;
             } else {
                 // split on '$'
-                System.out.println("Splitting " + messageQueue.peek());
-                String[] parts = messageQueue.poll().split("\\$");
+                System.out.println("Splitting " + UDPMessageQueue.peek());
+                String[] parts = UDPMessageQueue.poll().split("\\$");
                 System.out.println("Parts: " + Arrays.toString(parts));
 
                 String firstClientID = parts[0]; // first id in queue
                 long minTime = Long.valueOf(parts[1]); // first timestamp in queue
 
                 // find first client who buzzed
-                while (!messageQueue.isEmpty()) {
-                    parts = messageQueue.poll().split("\\$");
+                while (!UDPMessageQueue.isEmpty()) {
+                    parts = UDPMessageQueue.poll().split("\\$");
                     String clientID = parts[0];
                     long timeStamp = Long.parseLong(parts[1]);
                     if (timeStamp < minTime && clientSockets.get(clientID).isAlive()) {
@@ -301,9 +314,9 @@ public class Server {
                 for (String clientID : clientSockets.keySet()) {
                     ClientInfo info = clientSockets.get(clientID);
                     if (clientID.equals(firstClientID)) {
-                        info.out.println("ack");
+                        info.queueSendMessage("ack");
                     } else {
-                        info.out.println("negative-ack");
+                        info.queueSendMessage("negative-ack");
                     }
                 }
                 ClientInfo firstClient = clientSockets.get(firstClientID);
@@ -318,8 +331,8 @@ public class Server {
                  * So if we try to extract the client id from the incoming packet we will not
                  * find it in the map
                  */
-                if (firstClient.in.ready()) {
-                    String response = firstClient.in.readLine();
+                if (!firstClient.recievedFromClientsQueue.isEmpty()) {
+                    String response = firstClient.recievedFromClientsQueue.poll();
                     System.out.println("Client answered: " + response);
 
                     int index = -1;
@@ -327,11 +340,11 @@ public class Server {
                         index = Integer.parseInt(response);
 
                         if(index == questionList[currentQuestion].getCorrectQuestionIndex()){
-                            firstClient.out.println("correct");
+                            firstClient.queueSendMessage("correct");
                             firstClient.score += 10;
                         }
                         else{
-                            firstClient.out.println("wrong");
+                            firstClient.queueSendMessage("wrong");
                             firstClient.score -= 10;
                         }
                     }
@@ -341,7 +354,7 @@ public class Server {
 
                 } else {
                     System.out.println("Client did not answer");
-                    firstClient.out.println("none");
+                    firstClient.queueSendMessage("none");
                     firstClient.score -= 20;
                 }
             }
@@ -358,7 +371,7 @@ public class Server {
     private void sendNext() {
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
-            info.out.println("next");
+            info.queueSendMessage("next");
         }
     }
 
@@ -368,7 +381,7 @@ public class Server {
         System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
         for (String clientID : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientID);
-            info.out.println(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
+            info.queueSendMessage(ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion])));
             // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
         }
     }

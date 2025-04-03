@@ -5,9 +5,9 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 public class Client {
     private int clientPortTCP;
@@ -23,11 +23,15 @@ public class Client {
     private String clientID;
     private int score = 0;
 
-    public Client(int clientPortTCP, String serverIP, int serverPortTCP, int serverPortUDP) {
+    private String username;
+
+    public Client(String serverIP, int serverPortTCP, int serverPortUDP, String username) {
         this.clientPortTCP = clientPortTCP;
         this.serverIP = serverIP;
         this.serverPortTCP = serverPortTCP;
         this.serverPortUDP = serverPortUDP;
+
+        this.username = username;
 
         // create udp socket
         try {
@@ -47,14 +51,10 @@ public class Client {
     public void establishConnectToServer() throws UnknownHostException, IOException, InterruptedException {
         // create the connection, in and out
         // Socket socket = new Socket("localhost", 9090);
-        Socket socket = new Socket();
-        socket.bind(new InetSocketAddress(clientPortTCP)); // Bind to the specified client port
-        socket.connect(new InetSocketAddress(serverIP, serverPortTCP)); // Connect to the server
 
-        System.out.println("Connected to server at " + serverIP + ":" + serverPortTCP + " from client port " + clientPortTCP);
-        // Socket socket = new Socket(this.serverIP, this.serverPortTCP);
-        
-        // System.out.println("Starting tcp thread on port: " + socket.getLocalPort());
+
+        Socket socket = new Socket(this.serverIP, this.serverPortTCP);
+        System.out.println("Starting tcp thread on port: " + socket.getLocalPort());
 
         // Setup output stream to send data to the server
         this.out = new PrintWriter(socket.getOutputStream(), true);
@@ -64,6 +64,7 @@ public class Client {
 
         // handshake
         out.println("Hello I would like to connect");
+        out.println(this.username);
         // assign client id
         this.clientID = in.readLine();
         System.out.println("Server assigned Client ID: " + this.clientID);
@@ -152,7 +153,10 @@ public class Client {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        Client client = new Client(9070, "localhost", 9080, 9090);
+        System.out.println(Arrays.toString(args));
+
+
+        Client client = new Client("localhost", 9080, 9090, "James");
         client.establishConnectToServer();
     }
 

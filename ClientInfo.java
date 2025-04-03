@@ -1,6 +1,5 @@
-import java.io.BufferedReader;
-import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.PriorityQueue;
 
 public class ClientInfo {
     public enum GameState {
@@ -11,30 +10,34 @@ public class ClientInfo {
     }
 
     private String clientID;
-    private Socket clientSocket;
-    BufferedReader in;
-
-    // TCP Connection print/read
-    public PrintWriter out;
-    public int score = 0;
+    public Socket clientSocket;
+    
 
     // public queue toClientQueue
     // public queue fromClientQueue
+
+    public PriorityQueue<String> sendToClientQueue = new PriorityQueue<String>();
+    public PriorityQueue<String> recievedFromClientsQueue = new PriorityQueue<String>();
+
+    public int score = 0;
+
 
     private boolean isAlive = false;
 
     private String TCPIP;
     private int TCPPort;
 
-    public ClientInfo(String clientID, Socket clientSocket, BufferedReader in, PrintWriter out, String ip, int port) {
+    public ClientInfo(String clientID, Socket clientSocket, String ip, int TCPPort) {
         this.clientID = clientID;
         this.clientSocket = clientSocket;
-        this.in = in;
-        this.out = out;
         this.isAlive = true;
 
         this.TCPIP = ip;
-        this.TCPPort = port;
+        this.TCPPort = TCPPort;
+    }
+
+    public void queueSendMessage(String message) {
+        sendToClientQueue.add(message);
     }
 
     public String getClientID() {
@@ -53,12 +56,12 @@ public class ClientInfo {
         return this.isAlive;
     }
 
-    public boolean isSameIPPort(String ip, int port) {
+    public boolean isARejoin(String username, int ip) {
         return this.TCPIP.equals(ip) && this.TCPPort == port;
     }
 
     public boolean isSameIPPort(Socket socket) {
-        return isSameIPPort(socket.getInetAddress().getHostAddress(), socket.getPort());
+        return isARejoin(socket.getInetAddress().getHostAddress(), socket.getPort());
     }
 
 }
