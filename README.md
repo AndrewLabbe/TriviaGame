@@ -22,7 +22,7 @@ Big Things
 - Not allow symbols in username (Especially $, only allowed is a-z A-Z 1-9)
 - When the client joins middle of question if it joins late it will recieve gamestate and will not know what the question or if it can poll
 
-- The Client buzzes do not go thru until the second question where the servers ends up recieving 2 buzzes
+
 
 
 alt idea for ip:port TCP not binding
