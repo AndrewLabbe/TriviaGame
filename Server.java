@@ -98,6 +98,7 @@ public class Server {
                         // UDPDatagramSocket.close();
                         continue;
                     }
+                    
                     // accept packet
                     UDPDatagramSocket.receive(incomingPacket);
 
@@ -190,7 +191,7 @@ public class Server {
         // out.println(info.getClientID());
         
         for (ClientInfo tmpInfo : clientSockets.values()) {
-            if (tmpInfo.isARejoin(IP, port)) {
+            if (tmpInfo.isARejoin(clientID, IP)) {
                 if(tmpInfo.isAlive()) {
                     out.println("REJECT: user already active under username:IP combo");
                     return;

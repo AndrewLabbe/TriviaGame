@@ -7,7 +7,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 
 public class Client {
     private int clientPortTCP;
@@ -66,6 +65,10 @@ public class Client {
         out.println("Hello I would like to connect");
         out.println(this.username);
         String message = in.readLine();
+        if(message == null) {
+            System.out.println("Client may have disconnected during initialization, skipping.");
+            return;
+        }
         if(message.toLowerCase().startsWith("REJECT")) {
             System.out.println("Username exists/username active");
             System.exit(-1);
@@ -158,10 +161,15 @@ public class Client {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        System.out.println(Arrays.toString(args));
+        // System.out.println(Arrays.toString(args));
+        if(args.length < 1) {
+            System.out.println("must provide username as arg, Client <username>");
+            System.exit(-1);
+        }
 
+        String username =  args[0];
 
-        Client client = new Client("localhost", 9080, 9090, "James");
+        Client client = new Client("localhost", 9080, 9090, username);
         client.establishConnectToServer();
     }
 
