@@ -44,6 +44,10 @@ public class ClientInfo {
         return clientUsername;
     }
 
+    public String getTCPIP() {
+        return TCPIP;
+    }
+
     public int getScore() {
         return score;
     }

@@ -219,7 +219,7 @@ public class Server {
                 info.clientSocket.setSoTimeout(1);
 
                 if(gameState == GameState.POLLING){
-                    info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
+                    info.queueSendMessage("LATE QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
                 while (true) {
                     // send message first
@@ -284,7 +284,7 @@ public class Server {
         System.out.println(GREEN + "At least one client has joined, waiting for additional clients to join for " + secondsForJoin + " seconds..." + RESET);
         Thread.sleep(secondsForJoin * 1000);
         
-        
+
         // Thread for polling, stays constantly open because it will just receive
  
         // TODO index out of bound cause we dont check when out of questions
@@ -401,9 +401,15 @@ public class Server {
         currentQuestion++;
     }
 
-    private void sendQuestion() {
+    private void sendQuestion() throws InterruptedException {
         if(currentQuestion >= questionList.length){
             System.out.println("No more questions, onto the final scores");
+            // send final scores of players (maybe a top 3)
+            Thread.sleep(10000);
+            for (String clientUsername : clientSockets.keySet()) {
+                ClientInfo info = clientSockets.get(clientUsername);
+                info.queueSendMessage("next");
+            }
             // TODO move to final gamestate
         }
         else{

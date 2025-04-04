@@ -23,6 +23,8 @@ public class ClientWindow implements ActionListener
 
 	private JLabel gameState;
 
+	private JLabel answerFeedback;
+
 	Client client;
 
 	int answerChoice;
@@ -37,16 +39,19 @@ public class ClientWindow implements ActionListener
 	{
 		this.client = client;
 		this.answerChoice = -1;
-
-		JOptionPane.showMessageDialog(window, "This is a trivia game");
 		
-		window = new JFrame("Trivia");
+		window = new JFrame("Trivia Game");
 
 		question = new JLabel("Question goes here."); // represents the question
-		window.add(question);
 		question.setBounds(10, 5, 350, 100);
+		System.out.println(question.getText());
+		window.add(question);
+		
+		answerFeedback = new JLabel(); // represents feedback about answers
+		answerFeedback.setBounds(200, 150, 200, 20);
+		window.add(answerFeedback);
 
-		username = new JLabel(); // represents the score
+		username = new JLabel(); // represents the username
 		username.setText(String.format("<html><font color='#be2ee1'>%s</font>%s</html>", 
         "Username: ", client.getUsername()));
 		username.setBounds(10, 0, 350, 50);
@@ -56,7 +61,7 @@ public class ClientWindow implements ActionListener
 		optionGroup = new ButtonGroup();
 		for(int index=0; index<options.length; index++)
 		{
-			options[index] = new JRadioButton("Answer chioce " + (index+1));  // represents an option
+			options[index] = new JRadioButton("Answer choice " + (index+1));  // represents an option
 			// if a radio button is clicked, the event would be thrown to this class to handle
 			options[index].addActionListener(this);
 			options[index].setBounds(10, 110+(index*20), 350, 20);
@@ -68,8 +73,8 @@ public class ClientWindow implements ActionListener
 		timer.setBounds(250, 250, 100, 20);
 		window.add(timer);
 
-		gameState = new JLabel("Waiting for players...");  // represents the countdown shown on the window
-		gameState.setBounds(150, 200, 100, 20);
+		gameState = new JLabel("Waiting for players...");  // represents the current state of the game
+		gameState.setBounds(200, 200, 200, 20);
 		window.add(gameState);
 		
 		score = new JLabel("SCORE: 0"); // represents the score
@@ -86,13 +91,14 @@ public class ClientWindow implements ActionListener
 		submit.addActionListener(this);  // calls actionPerformed of this class
 		window.add(submit);
 		
-		
-		window.setSize(400,400);
-		window.setBounds(50, 50, 400, 400);
+		window.setSize(800, 600);
+		window.setBounds(50, 50, 800, 600);
 		window.setLayout(null);
 		window.setVisible(true);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setResizable(false);
+
+		window.repaint();
 
 		disableAllButtons();
 	}
@@ -102,7 +108,7 @@ public class ClientWindow implements ActionListener
 			prevClock.cancel();
 		}
 		catch(NullPointerException e){
-			System.out.println("null timer");
+			System.out.println("no timer to cancel");
 		}
 		clock = new TimerCode(duration);  // represents clocked task that should run after X seconds
 		prevClock = clock;
@@ -110,6 +116,9 @@ public class ClientWindow implements ActionListener
 		t.schedule(clock, 0, 1000); // clock is called every second
 	}
 
+	public void lateTimer(){
+		timer.setText("Time: joined late");
+	}
 
 	// for non-answering clients
 	// all buttons are disabled
@@ -123,7 +132,7 @@ public class ClientWindow implements ActionListener
 	}
 
 	public void updateGameStateLabel(String gameState){
-		this.gameState.setText(gameState + "...");
+		this.gameState.setText(gameState);
 	}
 
 	// for answering client (first buzz)
@@ -146,8 +155,13 @@ public class ClientWindow implements ActionListener
 		submit.setEnabled(false);
 	}
 
-	public void updateText(ClientQuestion currQuestion){
+	public void updateAnswerFeedback(String text){
+		this.answerFeedback.setText(text);
+	}
+
+	public void updateQuestionText(ClientQuestion currQuestion){
 		question.setText(currQuestion.getQuestionText());
+		answerFeedback.setText("");
 		for(int i = 0; i < 4; i++){
 			options[i].setText(currQuestion.getAnswers()[i]);
 		}
@@ -199,7 +213,7 @@ public class ClientWindow implements ActionListener
 				// call client.sendAnswer(answerChoice) or some adjacent method	
 				System.out.println(answerChoice);
 				client.sendAnswer(answerChoice);
-				submit.setEnabled(false);
+				disableAllButtons();
 				break;
 			default:
 				System.out.println("Incorrect Option");

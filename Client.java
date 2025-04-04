@@ -131,7 +131,9 @@ public class Client {
         String serverMessage = "";
         while (true) {
             try {
+                System.out.println("waiting for message");
                 serverMessage = in.readLine();
+                System.out.println("Message received: " + serverMessage);
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
                 System.exit(-1);
@@ -142,25 +144,30 @@ public class Client {
                 System.exit(0);
             } else if (serverMessage.equals("ack")) {
                 System.out.println("ACK: You buzzed first.");
+                window.updateAnswerFeedback("You buzzed first");
                 window.answeringClientButtons();
-                window.updateGameStateLabel("Answering");
+                window.updateGameStateLabel("Answering...");
                 window.startTimer(10);
             } else if (serverMessage.equals("negative-ack")) {
                 System.out.println("You were not the first to buzz.");
+                window.updateAnswerFeedback("You did not buzz first");
                 window.disableAllButtons();
-                window.updateGameStateLabel("Waiting for first client to answer");
+                window.updateGameStateLabel("Waiting for next question...");
                 window.startTimer(10);
             } else if (serverMessage.equals("correct")) {
                 System.out.println("Correct! +10 points.");
                 score += 10;
+                window.updateAnswerFeedback("Correct!");
                 window.updateScore(score);
             } else if (serverMessage.equals("wrong")) {
                 System.out.println("Incorrect. -10 points.");
                 score -= 10;
+                window.updateAnswerFeedback("Incorrect!");
                 window.updateScore(score);
             } else if (serverMessage.equals("none")) {
                 System.out.println("No answer. -20 points.");
                 score -= 20;
+                window.updateAnswerFeedback("Why didn't you answer?!");
                 window.updateScore(score);
             } else if (serverMessage.equals("next")) {
                 System.out.println("Next question...");
@@ -168,10 +175,19 @@ public class Client {
                 serverMessage = serverMessage.substring("question".length());
                 q = ClientQuestion.deserialize(serverMessage);
                 window.startTimer(15);
-                window.updateText(q);
+                window.updateQuestionText(q);
                 window.pollingButtons();
-                window.updateGameStateLabel("Polling");
+                window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
                 printServerQuestion(q);
+            } else if(serverMessage.toLowerCase().startsWith("late")) {
+                serverMessage = serverMessage.substring("late question".length());
+                q = ClientQuestion.deserialize(serverMessage);
+                window.lateTimer();
+                window.updateQuestionText(q);
+                window.pollingButtons();
+                window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
+                // make the labels make sense
+
             } else {
                 System.out.println("UNKNOWN MESSAGE: " + serverMessage);
             }
