@@ -134,6 +134,9 @@ public class Client {
                 System.out.println("waiting for message");
                 serverMessage = in.readLine();
                 System.out.println("Message received: " + serverMessage);
+                if(serverMessage == null){
+                    throw new Exception();
+                }
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
                 System.exit(-1);
