@@ -1,7 +1,7 @@
 LEFT TODO
 --------------
 
-- End quiz when out of questions - Partial - still need to process kill/end
+- End quiz when out of questions - Partial - still need to process kill/end clients / show end screen or whatever
 - Cases for server to use kill switch on Client
 - Mostly **GUI**
 - Show correct answer not just if correct or not to all clients
