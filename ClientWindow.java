@@ -2,6 +2,7 @@
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.TimerTask;
 import java.util.Timer;
@@ -16,28 +17,46 @@ public class ClientWindow implements ActionListener
 	private JLabel question;
 	private JLabel timer;
 	private JLabel score;
+	private JLabel username;
 	private TimerTask clock;
-	
+	private TimerTask prevClock;
+
+	private JLabel gameState;
+
+	Client client;
+
+	int answerChoice;
+
 	private JFrame window;
 	
 	private static SecureRandom random = new SecureRandom();
 	
 	// write setters and getters as you need
 	
-	public ClientWindow()
+	public ClientWindow(Client client)
 	{
+		this.client = client;
+		this.answerChoice = -1;
+
 		JOptionPane.showMessageDialog(window, "This is a trivia game");
 		
 		window = new JFrame("Trivia");
-		question = new JLabel("Q1. This is a sample question"); // represents the question
+
+		question = new JLabel("Question goes here."); // represents the question
 		window.add(question);
-		question.setBounds(10, 5, 350, 100);;
+		question.setBounds(10, 5, 350, 100);
+
+		username = new JLabel(); // represents the score
+		username.setText(String.format("<html><font color='#be2ee1'>%s</font>%s</html>", 
+        "Username: ", client.getUsername()));
+		username.setBounds(10, 0, 350, 50);
+		window.add(username);
 		
 		options = new JRadioButton[4];
 		optionGroup = new ButtonGroup();
 		for(int index=0; index<options.length; index++)
 		{
-			options[index] = new JRadioButton("Option " + (index+1));  // represents an option
+			options[index] = new JRadioButton("Answer chioce " + (index+1));  // represents an option
 			// if a radio button is clicked, the event would be thrown to this class to handle
 			options[index].addActionListener(this);
 			options[index].setBounds(10, 110+(index*20), 350, 20);
@@ -45,15 +64,15 @@ public class ClientWindow implements ActionListener
 			optionGroup.add(options[index]);
 		}
 
-		timer = new JLabel("TIMER");  // represents the countdown shown on the window
+		timer = new JLabel();  // represents the countdown shown on the window
 		timer.setBounds(250, 250, 100, 20);
-		clock = new TimerCode(30);  // represents clocked task that should run after X seconds
-		Timer t = new Timer();  // event generator
-		t.schedule(clock, 0, 1000); // clock is called every second
 		window.add(timer);
+
+		gameState = new JLabel("Waiting for players...");  // represents the countdown shown on the window
+		gameState.setBounds(150, 200, 100, 20);
+		window.add(gameState);
 		
-		
-		score = new JLabel("SCORE"); // represents the score
+		score = new JLabel("SCORE: 0"); // represents the score
 		score.setBounds(50, 250, 100, 20);
 		window.add(score);
 
@@ -74,10 +93,74 @@ public class ClientWindow implements ActionListener
 		window.setVisible(true);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setResizable(false);
+
+		disableAllButtons();
+	}
+
+	public void startTimer(int duration){
+		try{
+			prevClock.cancel();
+		}
+		catch(NullPointerException e){
+			System.out.println("null timer");
+		}
+		clock = new TimerCode(duration);  // represents clocked task that should run after X seconds
+		prevClock = clock;
+		Timer t = new Timer();  // event generator
+		t.schedule(clock, 0, 1000); // clock is called every second
+	}
+
+
+	// for non-answering clients
+	// all buttons are disabled
+	public void disableAllButtons(){
+		for(JRadioButton button : options){
+			button.setEnabled(false);
+		}
+		optionGroup.clearSelection();
+		poll.setEnabled(false);
+		submit.setEnabled(false);
+	}
+
+	public void updateGameStateLabel(String gameState){
+		this.gameState.setText(gameState + "...");
+	}
+
+	// for answering client (first buzz)
+	// all buttons are enabled except for poll
+	public void answeringClientButtons(){
+		for(JRadioButton button : options){
+			button.setEnabled(true);
+		}
+		optionGroup.clearSelection();
+		poll.setEnabled(false);
+		submit.setEnabled(true);
+	}
+
+	public void pollingButtons(){
+		for(JRadioButton button : options){
+			button.setEnabled(false);
+		}
+		optionGroup.clearSelection();
+		poll.setEnabled(true);
+		submit.setEnabled(false);
+	}
+
+	public void updateText(ClientQuestion currQuestion){
+		question.setText(currQuestion.getQuestionText());
+		for(int i = 0; i < 4; i++){
+			options[i].setText(currQuestion.getAnswers()[i]);
+		}
+	}
+
+	public void updateScore(int clientScore){
+		this.score.setText("SCORE: " + clientScore);
 	}
 
 	// this method is called when you check/uncheck any radio button
 	// this method is called when you press either of the buttons- submit/poll
+
+	// TODO call appropriate method depending on button pressed
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
@@ -87,36 +170,57 @@ public class ClientWindow implements ActionListener
 		String input = e.getActionCommand();  
 		switch(input)
 		{
-			case "Option 1":	// Your code here
-								break;
-			case "Option 2":	// Your code here
-								break;
-			case "Option 3":	// Your code here
-								break;
-			case "Option 4":	// Your code here
-								break;
-			case "Poll":		// Your code here
-								break;
-			case "Submit":		// Your code here
-								break;
+			case "Answer 1":	
+				// Your code here
+				answerChoice = 0;
+				break;
+			case "Answer 2":	
+				// Your code here
+				answerChoice = 1;
+				break;
+			case "Answer 3":	
+				// Your code here
+				answerChoice = 2;					
+				break;
+			case "Answer 4":	
+				// Your code here
+				answerChoice = 3;					
+				break;
+			case "Poll":		
+				// Your code here
+				try {
+					client.buzz();
+				} catch (UnknownHostException e1) {
+					System.out.println("Could not send buzz to host.");
+				}
+				break;
+			case "Submit":		
+				// Your code here
+				// call client.sendAnswer(answerChoice) or some adjacent method	
+				System.out.println(answerChoice);
+				client.sendAnswer(answerChoice);
+				submit.setEnabled(false);
+				break;
 			default:
-								System.out.println("Incorrect Option");
+				System.out.println("Incorrect Option");
 		}
 		
 		// test code below to demo enable/disable components
 		// DELETE THE CODE BELOW FROM HERE***
-		if(poll.isEnabled())
-		{
-			poll.setEnabled(false);
-			submit.setEnabled(true);
-		}
-		else
-		{
-			poll.setEnabled(true);
-			submit.setEnabled(false);
-		}
-		
-		question.setText("Q2. This is another test problem " + random.nextInt());
+
+		// clicking submit or poll disables the clicked button and enables the other
+		// commenting out because it is not needed
+
+		// if(poll.isEnabled())
+		// {
+		// 	poll.setEnabled(false);
+		// 	submit.setEnabled(true);
+		// }
+		// else
+		// {
+		// 	poll.setEnabled(true);
+		// 	submit.setEnabled(false);
+		// }
 		
 		// you can also enable disable radio buttons
 //		options[random.nextInt(4)].setEnabled(false);
@@ -140,6 +244,7 @@ public class ClientWindow implements ActionListener
 			{
 				timer.setText("Timer expired");
 				window.repaint();
+				//  disableAllButtons();
 				this.cancel();  // cancel the timed task
 				return;
 				// you can enable/disable your buttons for poll/submit here as needed
@@ -150,7 +255,7 @@ public class ClientWindow implements ActionListener
 			else
 				timer.setForeground(Color.black);
 			
-			timer.setText(duration+"");
+			timer.setText("Time: " + duration);
 			duration--;
 			window.repaint();
 		}
