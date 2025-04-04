@@ -10,8 +10,6 @@ LEFT TODO
 - Show correct answer not just if correct or not to all clients
   - IMPLMENTATION: queueSendMessage("correct answer$<id>" NOTE CLIENT MUST DO: message.split(//$)[1]
 
-* NOTE - The in.ready() has been removed from client side in processResponse(), might throw errors
-
 alt idea for ip:port TCP not binding
 serverSocket.setReuseAddress(true);
 setReuseAddress(true) is the important bit, idk what our socket would be called
