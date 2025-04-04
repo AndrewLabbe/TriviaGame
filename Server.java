@@ -205,18 +205,19 @@ public class Server {
                 return;
             } else {
                 // Rejoin with same username and that client is no longer alive
-                
                 // allow rejoin if IP matches as well
-                if(!existingClient.isARejoin(clientUsername, IP)){
-                    out.println("REJECT: This username is in use but inactive. Only client on original IP can rejoin with this username.");
-                    System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
-                    return;
-                } else {
+                if(existingClient.isUsernameIPMatch(clientUsername, IP)){
                     // rejoin
                     System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
                     existingClient.setActive(true);
-                    startClientThread(existingClient, in, out);
+                    // client socket changes if rejoin
+                    startClientThread(existingClient, in, out, clientSocket);
                     return; // exit the method to avoid adding a new client
+                } else {
+                    // IP does not match cannot rejoin
+                    out.println("REJECT: This username is in use but inactive. Only client on original IP can rejoin with this username.");
+                    System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
+                    return;
                 }
             }
         }
@@ -237,26 +238,27 @@ public class Server {
         // }
 
         // if reaches here then know its a new user as rejoins return on handled
-        ClientInfo info = new ClientInfo(clientUsername, clientSocket, IP, port);
+        ClientInfo info = new ClientInfo(clientUsername, IP);
         clientSockets.put(clientUsername, info);
         System.out.println(GREEN + "New client connected with ID: " + clientUsername + RESET);
-        startClientThread(info, in, out);
-
+        startClientThread(info, in, out, clientSocket);
     }
 
     /*
      * The loop/thread that each client will individually run
      */
 
-    private void startClientThread(ClientInfo info, BufferedReader in, PrintWriter out) throws IOException, InterruptedException {
+    private void startClientThread(ClientInfo info, BufferedReader in, PrintWriter out, Socket clientSocket) throws IOException, InterruptedException {
         // create new thread
         new Thread(() -> {
             try {
                 out.println("ACCEPTED: clientUsername: " + info.getClientUsername());
                 info.recievedFromClientsQueue.clear();
                 info.sendToClientQueue.clear();
-                info.clientSocket.setSoTimeout(1);
+                clientSocket.setSoTimeout(1);
 
+                // No question answers should exist before polling so wipe in case
+                wipeQueuedAnswered();
                 if(gameState == GameState.POLLING){
                     info.queueSendMessage("LATE QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
@@ -421,14 +423,24 @@ public class Server {
             }
             gameState = GameState.SHOWING_ANSWERS;
             System.out.println("Showing answers...");
+            sendAnswerIndex();
             int timeToShowAnswers = 5000;
             Thread.sleep(timeToShowAnswers);
 
-            // TODO show answers
+
+
 
             // Send "next question" message out to clients
             sendNext();
 
+
+        }
+    }
+
+    private void sendAnswerIndex() {
+        for (String clientUsername : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientUsername);
+            info.queueSendMessage("correct answer" + questionList[currentQuestion].getCorrectQuestionIndex());
         }
     }
 
@@ -459,6 +471,14 @@ public class Server {
                 info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
             }
+        }
+    }
+
+    // TODO could cause error
+    public void wipeQueuedAnswered() {
+        for (String clientUsername : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientUsername);
+            info.recievedFromClientsQueue.clear();
         }
     }
 

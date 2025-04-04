@@ -1,16 +1,8 @@
-import java.net.Socket;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ClientInfo {
-    public enum GameState {
-        WAITING_FOR_PLAYERS,
-        POLLING,
-        CLIENT_ANSWERING,
-        SHOWING_ANSWERS,
-    }
 
     private String clientUsername;
-    public Socket clientSocket;
     
 
     // public queue toClientQueue
@@ -25,15 +17,12 @@ public class ClientInfo {
     private boolean isAlive = false;
 
     private String TCPIP;
-    private int TCPPort;
 
-    public ClientInfo(String clientUsername, Socket clientSocket, String ip, int TCPPort) {
+    public ClientInfo(String clientUsername, String TCPIP) {
         this.clientUsername = clientUsername;
-        this.clientSocket = clientSocket;
         this.isAlive = true;
 
-        this.TCPIP = ip;
-        this.TCPPort = TCPPort;
+        this.TCPIP = TCPIP;
     }
 
     public void queueSendMessage(String message) {
@@ -60,7 +49,7 @@ public class ClientInfo {
         return this.isAlive;
     }
 
-    public boolean isARejoin(String clientID, String ip) {
+    public boolean isUsernameIPMatch(String clientID, String ip) {
         System.out.println("compared clientid " + clientID);
         return this.TCPIP.equals(TCPIP) && this.clientUsername.equals(clientID);
     }

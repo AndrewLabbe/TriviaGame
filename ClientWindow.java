@@ -4,9 +4,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
-import java.util.TimerTask;
 import java.util.Timer;
-import javax.swing.*;
+import java.util.TimerTask;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JRadioButton;
 
 public class ClientWindow implements ActionListener
 {
@@ -178,29 +183,24 @@ public class ClientWindow implements ActionListener
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		System.out.println("You clicked " + e.getActionCommand());
-		
+		System.out.println("ACTION: You clicked " + e.getActionCommand());
 		// input refers to the radio button you selected or button you clicked
-		String input = e.getActionCommand();  
+		String input = e.getActionCommand();
+		
+		for(int i = 0; i < client.currQuestion.getAnswers().length; i++)
+		{
+			if(input.equals(client.currQuestion.getAnswers()[i]))
+			{
+				answerChoice = i;
+				System.out.println("CURRENT SELECTED CHOICE index: " + client.currQuestion.getAnswers()[i]);
+				break;
+			}
+		}
+
+
 		switch(input)
 		{
-			case "Answer 1":	
-				// Your code here
-				answerChoice = 0;
-				break;
-			case "Answer 2":	
-				// Your code here
-				answerChoice = 1;
-				break;
-			case "Answer 3":	
-				// Your code here
-				answerChoice = 2;					
-				break;
-			case "Answer 4":	
-				// Your code here
-				answerChoice = 3;					
-				break;
-			case "Poll":		
+			case "Poll":
 				// Your code here
 				try {
 					client.buzz();
@@ -208,7 +208,7 @@ public class ClientWindow implements ActionListener
 					System.out.println("Could not send buzz to host.");
 				}
 				break;
-			case "Submit":		
+			case "Submit":
 				// Your code here
 				// call client.sendAnswer(answerChoice) or some adjacent method	
 				System.out.println(answerChoice);
