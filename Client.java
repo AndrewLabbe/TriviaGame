@@ -119,6 +119,9 @@ public class Client {
         while (true) {
             try {
                 serverMessage = in.readLine();
+                if(serverMessage == null){
+                    throw new Exception();
+                }
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
                 System.exit(-1);
