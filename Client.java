@@ -22,6 +22,8 @@ public class Client {
     private int serverPortTCP;
     private int serverPortUDP;
 
+    private ClientWindow window;
+
     private DatagramSocket clientUDPSocket;
 
     private BufferedReader in;
@@ -40,12 +42,18 @@ public class Client {
 
         this.username = username;
 
+        this.window = new ClientWindow(this);
+
         // create udp socket
         try {
             this.clientUDPSocket = new DatagramSocket();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public String getUsername(){
+        return this.username;
     }
 
     /*
@@ -86,6 +94,11 @@ public class Client {
         clientGameLoop();
     }
 
+    public void sendAnswer(int answerChoice){
+        // send answer to server over TCP
+        out.println(answerChoice);
+    }
+
     private void clientGameLoop() {
         try {
             // first step is waiting for client
@@ -95,7 +108,7 @@ public class Client {
         }
     }
 
-    private void buzz() throws UnknownHostException {
+    public void buzz() throws UnknownHostException {
         long timeStamp = System.currentTimeMillis();
         System.out.println("My username: " + username);
         String message = username + "$" + timeStamp + "$" + q.getQuestionIndex();
@@ -132,33 +145,36 @@ public class Client {
                 System.exit(0);
             } else if (serverMessage.equals("ack")) {
                 System.out.println("ACK: You buzzed first.");
+                window.answeringClientButtons();
+                window.updateGameStateLabel("Answering");
+                window.startTimer(10);
             } else if (serverMessage.equals("negative-ack")) {
                 System.out.println("You were not the first to buzz.");
+                window.disableAllButtons();
+                window.updateGameStateLabel("Waiting for first client to answer");
+                window.startTimer(10);
             } else if (serverMessage.equals("correct")) {
                 System.out.println("Correct! +10 points.");
                 score += 10;
+                window.updateScore(score);
             } else if (serverMessage.equals("wrong")) {
                 System.out.println("Incorrect. -10 points.");
                 score -= 10;
+                window.updateScore(score);
             } else if (serverMessage.equals("none")) {
                 System.out.println("No answer. -20 points.");
                 score -= 20;
+                window.updateScore(score);
             } else if (serverMessage.equals("next")) {
                 System.out.println("Next question...");
             } else if (serverMessage.toLowerCase().startsWith("question")) {
                 serverMessage = serverMessage.substring("question".length());
                 q = ClientQuestion.deserialize(serverMessage);
+                window.startTimer(15);
+                window.updateText(q);
+                window.pollingButtons();
+                window.updateGameStateLabel("Polling");
                 printServerQuestion(q);
-        
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(2000);
-                        System.out.println("Buzzing in...");
-                        buzz();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }).start();
             } else {
                 System.out.println("UNKNOWN MESSAGE: " + serverMessage);
             }

@@ -284,7 +284,7 @@ public class Server {
         System.out.println(GREEN + "At least one client has joined, waiting for additional clients to join for " + secondsForJoin + " seconds..." + RESET);
         Thread.sleep(secondsForJoin * 1000);
         
-
+        
         // Thread for polling, stays constantly open because it will just receive
  
         // TODO index out of bound cause we dont check when out of questions
