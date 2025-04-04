@@ -7,13 +7,12 @@ LEFT TODO
 
 Small Changes
 
-- End quiz when out of questions
+- End quiz when out of questions - Partial - still need to process kill/end
 
 Big Things
 
-- Allow Client to answer Server's questions
 - Cases for server to use kill switch on Client
-- **GUI**
+- Mostly **GUI**
 - Not allow symbols in username (Especially $, only allowed is a-z A-Z 1-9)
 
 * NOTE - The in.ready() has been removed from client side in processResponse(), might throw errors
