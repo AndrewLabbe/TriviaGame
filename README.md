@@ -1,6 +1,3 @@
-This is our README
-
-
 LEFT TODO
 --------------
 
