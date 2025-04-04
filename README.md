@@ -5,7 +5,8 @@ LEFT TODO
 - Cases for server to use kill switch on Client
 - Mostly **GUI**
 - Show correct answer not just if correct or not to all clients
-  - IMPLMENTATION: queueSendMessage("correct answer$<id>" NOTE CLIENT MUST DO: message.split(//$)[1]
+  - IMPLMENTATION: queueSendMessage("correct answer$<id>"
+  - NOTE CLIENT MUST DO: message.split(//$)[1]
 
 alt idea for ip:port TCP not binding
 serverSocket.setReuseAddress(true);
