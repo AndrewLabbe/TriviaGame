@@ -4,16 +4,11 @@ This is our README
 LEFT TODO
 --------------
 
-
-Small Changes
-
 - End quiz when out of questions - Partial - still need to process kill/end
-
-Big Things
-
 - Cases for server to use kill switch on Client
 - Mostly **GUI**
-- Not allow symbols in username (Especially $, only allowed is a-z A-Z 1-9)
+- Show correct answer not just if correct or not to all clients
+  - IMPLMENTATION: queueSendMessage("correct answer$<id>" NOTE CLIENT MUST DO: message.split(//$)[1]
 
 * NOTE - The in.ready() has been removed from client side in processResponse(), might throw errors
 
