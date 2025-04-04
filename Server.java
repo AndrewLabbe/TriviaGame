@@ -172,36 +172,75 @@ public class Server {
         String IP = clientSocket.getInetAddress().getHostAddress();
         int port = clientSocket.getPort();
 
-        boolean hasConnectedB4 = false;
         // Check if client already has existed
 
         // assign client ID
         System.out.println("Client says: " + in.readLine());
+        
         // Client will send username as second send
         String clientUsername = in.readLine();
         // out.println(info.getClientID());
         
-        for (ClientInfo tmpInfo : clientSockets.values()) {
-            if (tmpInfo.isARejoin(clientUsername, IP)) {
-                if(tmpInfo.isAlive()) {
-                    out.println("REJECT: user already active under username:IP combo");
-                    return;
-                }
+        // Validate username/check if is a reconnect
+        
+        // is the username valid format
+        if(clientUsername == null || clientUsername.equals("")){
+            out.println("REJECT: username empty/null please provide a username.");
+            System.out.println(RED + "Client sent empty username, rejecting connection" + RESET);
+            return;
+        }
+        // Only allow alphanumeric characters
+        if(!clientUsername.matches("[a-zA-Z0-9]+")){
+            out.println("REJECT: username invalid, only letters and numbers allowed in username.");
+            System.out.println(RED + "Client sent username has symbols/non alphanumeric characters, rejecting connection" + RESET);
+            return;
+        }
 
-                System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
-                hasConnectedB4 = true;
-                tmpInfo.setActive(true);
-                startClientThread(tmpInfo, in, out);
-                break;
+
+        if(clientSockets.containsKey(clientUsername)){
+            ClientInfo existingClient = clientSockets.get(clientUsername);
+            if(existingClient.isAlive()){
+                out.println("REJECT: username actively already in use. Please use a different username.");
+                System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
+                return;
+            } else {
+                // Rejoin with same username and that client is no longer alive
+                
+                // allow rejoin if IP matches as well
+                if(!existingClient.isARejoin(clientUsername, IP)){
+                    out.println("REJECT: This username is in use but inactive. Only client on original IP can rejoin with this username.");
+                    System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
+                    return;
+                } else {
+                    // rejoin
+                    System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
+                    existingClient.setActive(true);
+                    startClientThread(existingClient, in, out);
+                    return; // exit the method to avoid adding a new client
+                }
             }
         }
 
-        if(!hasConnectedB4) {
-            ClientInfo info = new ClientInfo(clientUsername, clientSocket, IP, port);
-            clientSockets.put(clientUsername, info);
-            System.out.println(GREEN + "New client connected with ID: " + clientUsername + RESET);
-            startClientThread(info, in, out);
-        }
+        // for (ClientInfo tmpInfo : clientSockets.values()) {
+        //     if (tmpInfo.isARejoin(clientUsername, IP)) {
+        //         if(tmpInfo.isAlive()) {
+        //             out.println("REJECT: user already active under username:IP combo");
+        //             return;
+        //         }
+
+        //         System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
+        //         hasConnectedB4 = true;
+        //         tmpInfo.setActive(true);
+        //         startClientThread(tmpInfo, in, out);
+        //         break;
+        //     }
+        // }
+
+        // if reaches here then know its a new user as rejoins return on handled
+        ClientInfo info = new ClientInfo(clientUsername, clientSocket, IP, port);
+        clientSockets.put(clientUsername, info);
+        System.out.println(GREEN + "New client connected with ID: " + clientUsername + RESET);
+        startClientThread(info, in, out);
 
     }
 

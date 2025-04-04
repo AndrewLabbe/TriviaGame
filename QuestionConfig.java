@@ -36,12 +36,12 @@ public class QuestionConfig {
                 }
                 // '-' is marker for a answer choice
                 if(firstChar == '-') {
-                    line = line.replace("-", "");
+                    line = line.substring(1);
                     currAnswers.add(line.trim()); // trim begining and end spaces if any
                 // '=' is marker for correct answer
                 } else if(firstChar == '=') {
                     line = line.replace("=", "");
-                    correctIndex = Integer.parseInt(line.trim()); // trim begining and end spaces if any
+                    correctIndex = Integer.parseInt(line.trim()) -1; // trim begining and end spaces if any
                 // ';' is marker for end of question info
                 } else if (firstChar == ';') {
                     if(currAnswers.size() == 0) {

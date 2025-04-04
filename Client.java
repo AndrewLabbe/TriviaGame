@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -66,16 +67,22 @@ public class Client {
     public void establishConnectToServer() throws UnknownHostException, IOException, InterruptedException {
         // create the connection, in and out
         // Socket socket = new Socket("localhost", 9090);
+        try {
+            Socket socket = new Socket(this.serverIP, this.serverPortTCP);
 
-        Socket socket = new Socket(this.serverIP, this.serverPortTCP);
-        System.out.println("Starting tcp thread on port: " + socket.getPort());
+            System.out.println("Starting tcp thread on port: " + socket.getPort());
 
-        // Setup output stream to send data to the server
-        this.out = new PrintWriter(socket.getOutputStream(), true);
+            // Setup output stream to send data to the server
+            this.out = new PrintWriter(socket.getOutputStream(), true);
 
-        // Setup input stream to receive data from the server
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
+            // Setup input stream to receive data from the server
+            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            
+        } catch(ConnectException e) {
+            System.out.println("Failed to connect to server, make sure the server is running on correct port and IP.");
+            System.out.println("Exiting...");
+            System.exit(-1);
+        }
         // handshake
         out.println("Hello I would like to connect");
         out.println(this.username); // username = clientID
@@ -83,14 +90,14 @@ public class Client {
         if(message == null) {
             System.out.println("Server may have disconnected exiting...");
             System.exit(-1);
-        }else if(message.toLowerCase().startsWith("REJECT")) {
-            System.out.println("Username exists/username active");
+        }else if(message.toLowerCase().strip().startsWith("reject")) {
+            System.out.println(RED + "Server rejected connection. '" + message + "'" + RESET);
             System.exit(-1);
+        } else {
+            System.out.println(GREEN + "Server accepted connection. " + message + RESET);
         }
 
         // listening/sending thread
-        // Send message to the server
-        System.out.println("Status: " + message + "!");
         clientGameLoop();
     }
 
@@ -104,7 +111,7 @@ public class Client {
             // first step is waiting for client
             processResponse();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("error from client game loop");
         }
     }
 
@@ -196,7 +203,7 @@ public class Client {
             }
         
             Thread.sleep(10);
-        }        
+        }
     }
 
     public void printServerQuestion(ClientQuestion cq){
@@ -210,9 +217,12 @@ public class Client {
         // System.out.println(Arrays.toString(args));
 
         String username = "TestUser";
+        
         if(args.length > 0) {
             username = args[0];
         }
+
+
 
         Client client = new Client("localhost", 9080, 9090, username);
         client.establishConnectToServer();
