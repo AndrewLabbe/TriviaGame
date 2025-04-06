@@ -165,17 +165,14 @@ public class Client {
             } else if (serverMessage.equals("correct")) {
                 System.out.println(GREEN + "Correct! +10 points." + RESET);
                 score += 10;
-                window.updateAnswerFeedback("Correct!");
                 window.updateScore(score);
             } else if (serverMessage.equals("wrong")) {
                 System.out.println(YELLOW + "Incorrect. -10 points." + RESET);
                 score -= 10;
-                window.updateAnswerFeedback("Incorrect!");
                 window.updateScore(score);
             } else if (serverMessage.equals("none")) {
                 System.out.println(YELLOW + "No answer. -20 points." + RESET);
                 score -= 20;
-                window.updateAnswerFeedback("Why didn't you answer?!");
                 window.updateScore(score);
             } else if (serverMessage.equals("next")) {
                 System.out.println(BLUE + "Next question..." + RESET);
@@ -188,7 +185,9 @@ public class Client {
                 window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
                 printServerQuestion(currQuestion);
             } else if(serverMessage.toLowerCase().startsWith("leaderboard")) {
-                // TODO logic to display scores
+                serverMessage = serverMessage.substring("leaderboard".length());
+                window.reportScores(serverMessage);
+                System.out.println("SCORE REPORT METHOD CALLED, message = " + serverMessage);
             } else if(serverMessage.toLowerCase().startsWith("late")) {
                 serverMessage = serverMessage.substring("late question".length());
                 currQuestion = ClientQuestion.deserialize(serverMessage);
@@ -201,6 +200,8 @@ public class Client {
                 serverMessage = serverMessage.substring("correct answer".length());
                 int correctIndex = Integer.parseInt(serverMessage.strip());
                 window.updateAnswerFeedback("Correct answer: " + currQuestion.getAnswers()[correctIndex]);
+                window.disableAllButtons();
+                window.updateGameStateLabel("Waiting for next question...");
             }
             else {
                 System.out.println(YELLOW + "UNKNOWN MESSAGE: " + serverMessage + RESET);

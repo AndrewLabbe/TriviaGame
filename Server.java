@@ -432,6 +432,7 @@ public class Server {
             ClientInfo info = clientSockets.get(clientUsername);
             info.queueSendMessage("correct answer" + questionList[currentQuestion].getCorrectQuestionIndex());
         }
+        sendLeaderboardToClients();
     }
 
     private void sendNext() {
@@ -468,11 +469,11 @@ public class Server {
 
     public void sendLeaderboardToClients() {
         ArrayList<ClientInfo> leaderboard = createLeaderboard();
-        StringBuilder leaderboardMessage = new StringBuilder("Leaderboard:\n");
+        StringBuilder leaderboardMessage = new StringBuilder("Leaderboard");
     
         for (int i = 0; i < leaderboard.size(); i++) {
             ClientInfo client = leaderboard.get(i);
-            leaderboardMessage.append((i + 1) + ". " + client.getClientUsername() + " - " + client.getScore() + "\n");
+            leaderboardMessage.append((i + 1) + ". " + client.getClientUsername() + ": " + client.getScore() + "$");
         }
     
         String message = leaderboardMessage.toString();
