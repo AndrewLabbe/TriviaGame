@@ -4,15 +4,16 @@ LEFT TODO
 - Convert/package all classes to JAR files
 - Practically done: **GUI**
   - Make textboxes big enough to fit text i.e. "Time: joined I..." & question/option textboxes
+- Put more consideration on sematics of client joining late
 
 CHECK
 - just check if server is tracking score properly, should be working but never actually tested
 
 
 Test Cases
-- Client leaving/rejoining at each game-state
-- Client WIFI goes does
-- Client is the only one to poll then leaves/rejoins
+- Client leaving/rejoining at each game-state ✅
+- Client WIFI goes
+- Client is the only one to poll then leaves/rejoins ✅
 - Server disconnecting intermittently 
 - Client joins with same username as other connected client
 - First client disconnects after polling, second client who buzzed must be considered the "first"

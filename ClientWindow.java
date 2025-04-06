@@ -1,14 +1,12 @@
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.Timer;
 import java.util.TimerTask;
-
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -169,7 +167,7 @@ public class ClientWindow implements ActionListener
 	
 
 	public void lateTimer(){
-		timer.setText("Time: joined late");
+		timer.setText("Time: joined late, polling still ongoing");
 	}
 
 	// for non-answering clients
