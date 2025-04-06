@@ -353,7 +353,7 @@ public class Server {
                 System.out.println("Parts: " + Arrays.toString(parts));
 
                 String firstClientID = parts[0]; // first id in queue
-                long minTime = Long.valueOf(parts[1]); // first timestamp in queue
+                long minTime = Long.MAX_VALUE; // first timestamp in queue
 
                 // find first client who buzzed
                 while (!UDPMessageQueue.isEmpty()) {
@@ -374,6 +374,7 @@ public class Server {
                         info.queueSendMessage("negative-ack");
                     }
                 }
+
                 ClientInfo firstClient = clientSockets.get(firstClientID);
                 // wait for 10 seconds to get answer
                 int waitTime = 10000;
@@ -472,6 +473,9 @@ public class Server {
     
         for (int i = 0; i < leaderboard.size(); i++) {
             ClientInfo client = leaderboard.get(i);
+            //Sample output
+            // 1. Bob - 20
+            // 2. Matt - 30
             leaderboardMessage.append((i + 1) + ". " + client.getClientUsername() + " - " + client.getScore() + "\n");
         }
     
