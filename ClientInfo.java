@@ -3,7 +3,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ClientInfo {
 
     private String clientUsername;
-    
 
     // public queue toClientQueue
     // public queue fromClientQueue
@@ -21,7 +20,6 @@ public class ClientInfo {
     public ClientInfo(String clientUsername, String TCPIP) {
         this.clientUsername = clientUsername;
         this.isAlive = true;
-
         this.TCPIP = TCPIP;
     }
 

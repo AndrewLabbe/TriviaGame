@@ -187,6 +187,8 @@ public class Client {
                 window.pollingButtons();
                 window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
                 printServerQuestion(currQuestion);
+            } else if(serverMessage.toLowerCase().startsWith("leaderboard")) {
+                // TODO logic to display scores
             } else if(serverMessage.toLowerCase().startsWith("late")) {
                 serverMessage = serverMessage.substring("late question".length());
                 currQuestion = ClientQuestion.deserialize(serverMessage);

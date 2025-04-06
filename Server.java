@@ -8,7 +8,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -23,19 +25,12 @@ public class Server {
     public static final String CYAN = "\u001B[36m";
     public static final String WHITE = "\u001B[37m";
 
-    // private static ServerQuestion[] questionList = {
-    //     new ServerQuestion("Question 1: What is a fuzzy animal", new String[]{"bear", "lizard", "turtle"}, 0),
-    //     new ServerQuestion("Question 2: What is the name of a rock", new String[]{"dog", "cat", "rock"}, 0),
-    //     new ServerQuestion("Question 3", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-    //     new ServerQuestion("Question 4", new String[]{"Answer1", "Answer2", "Answer3"}, 0),
-    // };
-
     private static ServerQuestion[] questionList;
 
     public int currentIDIteration = 0;
 
     public enum GameState {
-        WAITING_FOR_PLAYERS, POLLING, CLIENT_ANSWERING, SHOWING_ANSWERS,
+        WAITING_FOR_PLAYERS, POLLING, CLIENT_ANSWERING, SHOWING_ANSWERS, FINAL_SCORES
     }
 
     // set to -1 because game first increments value to move onto "first" question at index 0
@@ -427,13 +422,8 @@ public class Server {
             int timeToShowAnswers = 5000;
             Thread.sleep(timeToShowAnswers);
 
-
-
-
             // Send "next question" message out to clients
             sendNext();
-
-
         }
     }
 
@@ -455,13 +445,15 @@ public class Server {
     private void sendQuestion() throws InterruptedException {
         if(currentQuestion >= questionList.length){
             System.out.println("No more questions, onto the final scores");
-            // send final scores of players (maybe a top 3)
-            Thread.sleep(10000);
+            sendLeaderboardToClients();
+            // moves to final gamestate
+            gameState = GameState.FINAL_SCORES;
+            Thread.sleep(20000);
             for (String clientUsername : clientSockets.keySet()) {
                 ClientInfo info = clientSockets.get(clientUsername);
-                info.queueSendMessage("next");
+                info.queueSendMessage("kill");
             }
-            // TODO move to final gamestate
+            return;
         }
         else{
             System.out.println(questionList[currentQuestion].getQuestionText());
@@ -473,6 +465,47 @@ public class Server {
             }
         }
     }
+
+    public void sendLeaderboardToClients() {
+        ArrayList<ClientInfo> leaderboard = createLeaderboard();
+        StringBuilder leaderboardMessage = new StringBuilder("Leaderboard:\n");
+    
+        for (int i = 0; i < leaderboard.size(); i++) {
+            ClientInfo client = leaderboard.get(i);
+            leaderboardMessage.append((i + 1) + ". " + client.getClientUsername() + " - " + client.getScore() + "\n");
+        }
+    
+        String message = leaderboardMessage.toString();
+    
+        // Send the leaderboard message to all clients
+        for (String clientUsername : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientUsername);
+            info.queueSendMessage(message);
+        }
+    }
+    
+    
+
+    public ArrayList<ClientInfo> createLeaderboard() {
+        ArrayList<ClientInfo> scores = new ArrayList<ClientInfo>();
+        
+        for (String clientUsername : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientUsername);
+            scores.add(info);
+        }
+
+        // Define comparator to sort by score descending
+        Comparator<ClientInfo> c = new Comparator<ClientInfo>() {
+            @Override
+            public int compare(ClientInfo a, ClientInfo b) {
+                return Integer.compare(b.getScore(), a.getScore()); // descending
+            }
+        };
+
+        scores.sort(c);
+        return scores; // return the sorted list
+    }
+
 
     // TODO could cause error
     public void wipeQueuedAnswered() {
