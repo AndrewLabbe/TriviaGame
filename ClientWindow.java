@@ -1,5 +1,7 @@
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.UnknownHostException;
@@ -7,10 +9,12 @@ import java.security.SecureRandom;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
 public class ClientWindow implements ActionListener
@@ -30,6 +34,10 @@ public class ClientWindow implements ActionListener
 
 	private JLabel answerFeedback;
 
+	private JPanel panel;
+
+	private JPanel scorePanel;
+
 	Client client;
 
 	int answerChoice;
@@ -45,22 +53,29 @@ public class ClientWindow implements ActionListener
 		this.client = client;
 		this.answerChoice = -1;
 		
+
 		window = new JFrame("Trivia Game");
+		window.setLayout(new BorderLayout());
+
+		panel = new JPanel();
+		panel.setLayout(null); // Disable layout manager
+		panel.setBounds(0, 0, window.getWidth(), window.getHeight()); // Set panel size
+		window.add(panel, BorderLayout.CENTER);
 
 		question = new JLabel("Question goes here."); // represents the question
 		question.setBounds(10, 5, 350, 100);
 		System.out.println(question.getText());
-		window.add(question);
+		panel.add(question);
 		
 		answerFeedback = new JLabel(); // represents feedback about answers
 		answerFeedback.setBounds(200, 150, 200, 20);
-		window.add(answerFeedback);
+		panel.add(answerFeedback);
 
 		username = new JLabel(); // represents the username
 		username.setText(String.format("<html><font color='#be2ee1'>%s</font>%s</html>", 
         "Username: ", client.getUsername()));
 		username.setBounds(10, 0, 350, 50);
-		window.add(username);
+		panel.add(username);
 		
 		options = new JRadioButton[4];
 		optionGroup = new ButtonGroup();
@@ -70,35 +85,38 @@ public class ClientWindow implements ActionListener
 			// if a radio button is clicked, the event would be thrown to this class to handle
 			options[index].addActionListener(this);
 			options[index].setBounds(10, 110+(index*20), 350, 20);
-			window.add(options[index]);
+			panel.add(options[index]);
 			optionGroup.add(options[index]);
 		}
 
 		timer = new JLabel();  // represents the countdown shown on the window
 		timer.setBounds(250, 250, 100, 20);
-		window.add(timer);
+		panel.add(timer);
 
 		gameState = new JLabel("Waiting for players...");  // represents the current state of the game
 		gameState.setBounds(200, 200, 200, 20);
-		window.add(gameState);
+		panel.add(gameState);
 		
 		score = new JLabel("SCORE: 0"); // represents the score
 		score.setBounds(50, 250, 100, 20);
-		window.add(score);
+		panel.add(score);
 
 		poll = new JButton("Poll");  // button that use clicks/ like a buzzer
 		poll.setBounds(10, 300, 100, 20);
 		poll.addActionListener(this);  // calls actionPerformed of this class
-		window.add(poll);
+		panel.add(poll);
 		
 		submit = new JButton("Submit");  // button to submit their answer
 		submit.setBounds(200, 300, 100, 20);
 		submit.addActionListener(this);  // calls actionPerformed of this class
-		window.add(submit);
+		panel.add(submit);
+
+		reportScores(null);
+
+		panel.repaint();
 		
 		window.setSize(800, 600);
 		window.setBounds(50, 50, 800, 600);
-		window.setLayout(null);
 		window.setVisible(true);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setResizable(false);
@@ -120,6 +138,35 @@ public class ClientWindow implements ActionListener
 		Timer t = new Timer();  // event generator
 		t.schedule(clock, 0, 1000); // clock is called every second
 	}
+
+	public void reportScores(String scores){
+		if(scorePanel != null){
+			panel.remove(scorePanel);
+		}
+		scorePanel = new JPanel();
+        scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
+		scorePanel.setBounds(500, 0, 300, 600);
+		if(scores != null){
+			String[] lines = scores.split("\\$");
+			scorePanel.add(new JLabel("SCORES:"));
+			for(int i = 0; i < lines.length; i++){
+				System.out.println(lines[i]);
+				scorePanel.add(new JLabel(lines[i]));
+			}
+		}
+		
+
+		scorePanel.revalidate();
+		scorePanel.repaint();
+
+		panel.add(scorePanel);
+		panel.revalidate();
+		panel.repaint();
+
+		window.revalidate();
+		window.repaint();
+	}
+	
 
 	public void lateTimer(){
 		timer.setText("Time: joined late");
