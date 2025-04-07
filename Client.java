@@ -196,7 +196,7 @@ public class Client {
                 window.pollingButtons();
                 window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
                 // make the labels make sense
-            } else if (serverMessage.toLowerCase().startsWith("ANSWERING")) {
+            } else if (serverMessage.toLowerCase().startsWith("answering")) {
                 serverMessage = serverMessage.substring("ANSWERING".length());
                 currQuestion = ClientQuestion.deserialize(serverMessage);
                 System.out.println(MAGENTA + "Joined mid answering, Question: " + currQuestion.getQuestionText() + "(" + currQuestion.getQuestionIndex() + ")" + RESET);

@@ -252,7 +252,7 @@ public class Server {
                 // answers will be wiped in game loop regardless of whether client is alive or dead before polling which covers this case
                 if (gameState == GameState.POLLING) {
                     info.queueSendMessage("LATE QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
-                } else if (gameState == GameState.CLIENT_ANSWERING) {
+                } else if (gameState == GameState.CLIENT_ANSWERING || gameState == GameState.SHOWING_ANSWERS) {
                     System.out.println("Client joined during answering: " + info.getClientUsername());
                     info.queueSendMessage("ANSWERING" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
@@ -286,7 +286,6 @@ public class Server {
 
                         Thread.sleep(10);
                     } catch (SocketException e) {
-                        e.printStackTrace();
                         System.out.println(RED + "Socket Exception on client, so time to kill " + info.getClientUsername() + RESET);
                         info.setActive(false);
                         break;
@@ -380,13 +379,6 @@ public class Server {
                     }
                 }
 
-                // THIS NULL CHECK IF FOR IF NO **ALIVE** CLIENTS BUZZED
-                if (firstClient == null) {
-                    System.out.println(RED + "No alive clients buzzed, next question (Not showing answer)..." + RESET);
-                    sendNext();
-                    continue;
-                }
-
                 // there is a first client
                 // response with "ack" for first client and "negative-ack" for others
                 for (String clientUsername : clientSockets.keySet()) {
@@ -399,10 +391,16 @@ public class Server {
                         info.queueSendMessage("negative-ack");
                     }
                 }
-                int waitSecondsTime = 10;
+                // THIS NULL CHECK IF FOR IF NO **ALIVE** CLIENTS BUZZED
+                if (firstClient == null) {
+                    System.out.println(RED + "No alive clients buzzed, next question (Not showing answer)..." + RESET);
+                    sendNext();
+                    continue;
+                }
+                int waitSecondsTimeAnswering = 10;
                 // wait for 10 seconds to get answer from first client
-                System.out.println(CYAN + "Waiting for client " + firstClient.getClientUsername() + " to answer (" + waitSecondsTime + " seconds)..." + RESET);
-                Thread.sleep(waitSecondsTime * 1000);
+                System.out.println(CYAN + "Waiting for client " + firstClient.getClientUsername() + " to answer (" + waitSecondsTimeAnswering + " seconds)..." + RESET);
+                Thread.sleep(waitSecondsTimeAnswering * 1000);
 
                 // if recieved an answer
                 if (!firstClient.recievedClientAnswersQueue.isEmpty()) {
@@ -433,7 +431,7 @@ public class Server {
 
             // give client answer and allow showing for 5 seconds
             gameState = GameState.SHOWING_ANSWERS;
-            System.out.println("Showing answers...");
+            System.out.println(CYAN + "Showing answers..." + RESET);
             sendAnswerIndex();
             int timeToShowAnswers = 5000;
             Thread.sleep(timeToShowAnswers);
