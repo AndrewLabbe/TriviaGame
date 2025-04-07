@@ -66,18 +66,20 @@ public class Server {
     public void createUDPPollingThread() {
         try {
             byte[] incomingData = new byte[1024];
-            System.out.println(YELLOW + "Starting a UDP Thread..." + RESET);
-
-            while (true) {
+            System.out.println(MAGENTA + "Starting a UDP Thread..." + RESET);
+            // set timeout for reveiving packets so it is not completely blocking and importantly will be able to exit when quiz complete
+            int secondsTimeout = 3;
+            UDPDatagramSocket.setSoTimeout(secondsTimeout * 1000);
+            // quit UDP thread when quiz is complete
+            while (gameState != GameState.FINAL_SCORES) {
                 try {
                     // create datagram packet using incoming data as paramater
-                    System.out.println(YELLOW + "Listening for a new UDP packet..." + RESET);
                     DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
                     UDPDatagramSocket.receive(incomingPacket);
 
                     // if recieve while not polling skip
                     if (gameState != GameState.POLLING) {
-                        System.out.println("Game state is not polling, ignoring packet that came in");
+                        System.out.println(YELLOW + "Game state is not polling, ignoring packet that came in" + RESET);
                         continue;
                     }
 
@@ -109,14 +111,20 @@ public class Server {
                     UDPMessageQueue.add(message);
                     System.out.println(CYAN + "Client buzzed: " + message + RESET);
                     Thread.sleep(5);
+                } catch (SocketTimeoutException e) {
+                    // Do nothing
+                    // System.out.println("UDP Socket Timeout, no packets received in " + secondsTimeout + " seconds");
+                    Thread.sleep(100);
                 } catch (Exception e) {
                     e.printStackTrace();
                     Thread.sleep(1000);
                 }
+
             }
         } catch (Exception e) {
             throw new RuntimeException("Listening process was interupted", e);
         }
+        System.out.println(MAGENTA + "ending udp thread" + RESET);
     }
 
     /*
@@ -127,20 +135,31 @@ public class Server {
      * Asks createClientTCPThread to setup TCP thread
      * restarts loop blocks until client connects over TCP...
      */
-    public void createTCPConnectionThread() throws IOException, InterruptedException {
+    public void createTCPConnectionCreationThread() throws IOException, InterruptedException {
         try {
-            while (true) {
-                // wait for a client to request to connect
-                System.out.println("Waiting new TCP connection...");
+            // set timeout .accept() is not blocking forever, and it can check in the while loop if quiz ended
+            int secondsTimeout = 5;
+            serverTCPSocket.setSoTimeout(secondsTimeout * 1000);
+            System.out.println(MAGENTA + "Starting TCP connection connection listening thread..." + RESET);
+            while (gameState != GameState.FINAL_SCORES) {
+                try {
+                    // wait for a client to request to connect
 
-                Socket clientSocket = this.serverTCPSocket.accept();
-                System.out.println("Client connected!");
+                    Socket clientSocket = this.serverTCPSocket.accept();
+                    System.out.println("A client connected!");
 
-                createClientTCPThread(clientSocket);
+                    createClientTCPThread(clientSocket);
+                } catch (SocketTimeoutException e) {
+                    // Do nothing, just unblocks loop for a moment to check if done
+                    // System.out.println("TCP Socket Timeout, no clients connected refreshing blocking");
+                    Thread.sleep(100);
+                }
             }
         } catch (IOException io) {
             io.printStackTrace();
         }
+
+        System.out.println(MAGENTA + "Ending TCP connection creation thread" + RESET);
     }
 
     /*
@@ -156,60 +175,49 @@ public class Server {
         BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-        // String clientIP = clientSocket.getInetAddress().getHostAddress();
-        // int clientPort = clientSocket.getPort();
-        // String clientUsername = clientIP + ":" + clientPort;
-
-        // String clientUsername = "" + currentIDIteration;
-        // currentIDIteration++;
-
         String IP = clientSocket.getInetAddress().getHostAddress();
-        int port = clientSocket.getPort();
-
         // Check if client already has existed
 
         // assign client ID
-        System.out.println("Client says: " + in.readLine());
 
         // Client will send username as second send
         String clientUsername = in.readLine();
-        // out.println(info.getClientID());
 
         // Validate username/check if is a reconnect
 
         // is the username valid format
         if (clientUsername == null || clientUsername.equals("")) {
-            out.println("REJECT: username empty/null please provide a username.");
-            System.out.println(RED + "Client sent empty username, rejecting connection" + RESET);
+            out.println("REJECT: username (" + clientUsername + ") empty/null please provide a username.");
+            System.out.println(RED + "Client sent empty username (" + clientUsername + "), rejecting connection" + RESET);
             return;
         }
         // Only allow alphanumeric characters
         if (!clientUsername.matches("[a-zA-Z0-9]+")) {
-            out.println("REJECT: username invalid, only letters and numbers allowed in username.");
-            System.out.println(RED + "Client sent username has symbols/non alphanumeric characters, rejecting connection" + RESET);
+            out.println("REJECT: username (" + clientUsername + ") invalid, only letters and numbers allowed in username.");
+            System.out.println(RED + "Client sent username (" + clientUsername + ") has symbols/non alphanumeric characters, rejecting connection" + RESET);
             return;
         }
 
         if (clientSockets.containsKey(clientUsername)) {
             ClientInfo existingClient = clientSockets.get(clientUsername);
             if (existingClient.isAlive()) {
-                out.println("REJECT: username actively already in use. Please use a different username.");
-                System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
+                out.println("REJECT: username (" + clientUsername + ") actively already in use. Please use a different username.");
+                System.out.println(RED + "Client sent username (" + clientUsername + ") already in use, rejecting connection" + RESET);
                 return;
             } else {
                 // Rejoin with same username and that client is no longer alive
                 // allow rejoin if IP matches as well
                 if (existingClient.isUsernameIPMatch(clientUsername, IP)) {
                     // rejoin
-                    System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
+                    System.out.println(GREEN + "Client (" + clientUsername + ") has preivously connected, reinitializing client state..." + RESET);
                     existingClient.setActive(true);
                     // client socket changes if rejoin
                     startClientThread(existingClient, in, out, clientSocket);
                     return; // exit the method to avoid adding a new client
                 } else {
                     // IP does not match cannot rejoin
-                    out.println("REJECT: This username is in use but inactive. Only client on original IP can rejoin with this username.");
-                    System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
+                    out.println("REJECT: This username (" + clientUsername + ") is in use but inactive. Only client on original IP can rejoin with this username.");
+                    System.out.println(RED + "Client sent username (" + clientUsername + ") already in use, rejecting connection" + RESET);
                     return;
                 }
             }
@@ -231,23 +239,33 @@ public class Server {
         new Thread(() -> {
             // TODO There are 3 trys for socket exceptions
             try {
-                out.println("ACCEPTED: clientUsername: " + info.getClientUsername());
+                out.println("Starting thread for clientUsername: " + info.getClientUsername());
                 // if client just joined then clear any unresolved messages as they are only relevant while active
-                info.recievedClientAnswersQueue.clear();
-                info.sendToClientQueue.clear();
+
+                // info.recievedClientAnswersQueue.clear();
+
+                // info.sendToClientQueue.clear();
+
                 clientSocket.setSoTimeout(1); // allows us to use readln without it blocking forever
                 // Implemented to solve server knowing when client is dead
 
-                // wipeQueuedAnswered(); this should not be called here as then *all clients would be wiped every time a client joined late or rejoined
                 // answers will be wiped in game loop regardless of whether client is alive or dead before polling which covers this case
                 if (gameState == GameState.POLLING) {
                     info.queueSendMessage("LATE QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
+                } else if (gameState == GameState.CLIENT_ANSWERING) {
+                    System.out.println("Client joined during answering: " + info.getClientUsername());
+                    info.queueSendMessage("ANSWERING" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
 
                 while (true) {
                     // send queued messages to client
-                    while (!info.sendToClientQueue.isEmpty())
-                        out.println(info.sendToClientQueue.poll());
+                    while (!info.sendToClientQueue.isEmpty()) {
+                        String sendMessage = info.sendToClientQueue.poll();
+                        out.println(sendMessage);
+                        if (sendMessage.equalsIgnoreCase("kill")) {
+                            break; // if client is being killed then also exit the thead
+                        }
+                    }
 
                     // check if client has sent a message
                     try {
@@ -258,7 +276,7 @@ public class Server {
                                 throw new SocketException();
 
                             info.recievedClientAnswersQueue.add(message); // put message into queue to be read by gameloop
-                            System.out.println("Client says: " + message);
+                            // System.out.println("Client says: " + message);
 
                             Thread.sleep(10);
                             continue;
@@ -268,7 +286,8 @@ public class Server {
 
                         Thread.sleep(10);
                     } catch (SocketException e) {
-                        System.out.println(RED + "Socket Exception on client " + info.getClientUsername() + RESET);
+                        e.printStackTrace();
+                        System.out.println(RED + "Socket Exception on client, so time to kill " + info.getClientUsername() + RESET);
                         info.setActive(false);
                         break;
                     }
@@ -283,6 +302,7 @@ public class Server {
                 // will end thread if any exception
                 // TODO decide if all exceptions should quit or if say io exception should keep going
             }
+            System.out.println(YELLOW + "Disconnecting client thread for client: " + info.getClientUsername() + RESET);
         }).start();
 
     }
@@ -295,7 +315,7 @@ public class Server {
 
         // TODO process for managing when to stop waiting for clients
         gameState = GameState.WAITING_FOR_PLAYERS;
-        System.out.println(MAGENTA + "Currently waiting for players to join..." + RESET);
+        System.out.println(GREEN + "Currently waiting for players to join..." + RESET);
 
         while (clientSockets.size() == 0) {
             Thread.sleep(1000);
@@ -314,11 +334,18 @@ public class Server {
             // sending question
             wipeQueuedAnswered(); // in case some answer got lost and not processed ie arrived late clear b4 starting polling
             // a queued answer at this point could not be possibly valid at this point
-            sendQuestion();
 
-            System.out.println(GREEN + "Polling for 15 seconds..." + RESET);
-            long buzzTime = 15000;
-            Thread.sleep(buzzTime);
+            // send question quit if out of questions
+            if (sendQuestion()) {
+                System.out.println(GREEN + "Question sent to clients, waiting for buzz..." + RESET);
+            } else {
+                System.out.println(RED + "No more questions, moving to final scores..." + RESET);
+                break; // no more questions
+            }
+
+            long buzzTimeSeconds = 15;
+            System.out.println(GREEN + "Polling for " + buzzTimeSeconds + " seconds..." + RESET);
+            Thread.sleep(buzzTimeSeconds * 1000);
 
             gameState = GameState.CLIENT_ANSWERING;
             // poll.join();
@@ -326,7 +353,7 @@ public class Server {
 
             // No-one buzzed
             if (UDPMessageQueue.isEmpty()) {
-                System.out.println(RED + "No clients buzzed, not showing answers next question..." + RESET);
+                System.out.println(RED + "No clients buzzed, next question (Not showing answer)..." + RESET);
                 sendNext();
                 // sends next when restarts loop will send new question then
                 continue;
@@ -353,10 +380,10 @@ public class Server {
                     }
                 }
 
+                // THIS NULL CHECK IF FOR IF NO **ALIVE** CLIENTS BUZZED
                 if (firstClient == null) {
-                    System.out.println(RED + "No clients buzzed, next question (Not showing answer)..." + RESET);
+                    System.out.println(RED + "No alive clients buzzed, next question (Not showing answer)..." + RESET);
                     sendNext();
-                    // sends next when restarts loop will send new question then
                     continue;
                 }
 
@@ -372,10 +399,10 @@ public class Server {
                         info.queueSendMessage("negative-ack");
                     }
                 }
+                int waitSecondsTime = 10;
                 // wait for 10 seconds to get answer from first client
-                System.out.println(CYAN + "Waiting for client " + firstClient.getClientUsername() + " to answer..." + RESET);
-                int waitTime = 10000;
-                Thread.sleep(waitTime);
+                System.out.println(CYAN + "Waiting for client " + firstClient.getClientUsername() + " to answer (" + waitSecondsTime + " seconds)..." + RESET);
+                Thread.sleep(waitSecondsTime * 1000);
 
                 // if recieved an answer
                 if (!firstClient.recievedClientAnswersQueue.isEmpty()) {
@@ -439,10 +466,11 @@ public class Server {
     /**
      * Sends the current question to all clients
      * If there are no more questions, sends the final scores
-     * 
+     *
+     * @return true if there are more questions, false if no more questions
      * @throws InterruptedException
      */
-    private void sendQuestion() throws InterruptedException {
+    private boolean sendQuestion() throws InterruptedException {
         if (currentQuestion >= questionList.length) {
             System.out.println("No more questions, onto the final scores");
             sendLeaderboardToClients();
@@ -453,17 +481,21 @@ public class Server {
             // game is done kill all clients
             for (String clientUsername : clientSockets.keySet()) {
                 ClientInfo info = clientSockets.get(clientUsername);
+                System.out.println("Killing Client: " + clientUsername + " with socket exception");
                 info.queueSendMessage("kill");
             }
-            return;
+            return false;
         }
         // there is available question
-        System.out.println(questionList[currentQuestion].getQuestionText());
-        System.out.println("Answers: " + Arrays.toString(questionList[currentQuestion].getAnswers()));
+        System.out.println("=====");
+        System.out.println("Question " + (currentQuestion + 1) + ": " + questionList[currentQuestion].getQuestionText());
+        System.out.println("Answer options: " + Arrays.toString(questionList[currentQuestion].getAnswers()));
         for (String clientUsername : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientUsername);
             info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
         }
+        System.out.println("=====");
+        return true;
     }
 
     /**
@@ -485,6 +517,10 @@ public class Server {
             ClientInfo info = clientSockets.get(clientUsername);
             info.queueSendMessage(message);
         }
+        System.out.println("----");
+        System.out.println(GREEN + "Sent Leaderboard" + RESET);
+        System.out.println(message);
+        System.out.println("----\n");
     }
 
     public ArrayList<ClientInfo> createLeaderboard() {
@@ -519,12 +555,14 @@ public class Server {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
+        // serverTCPPort
+        // serverUDPPort
 
         Server server = new Server(9080, 9090);
 
         new Thread(() -> {
             try {
-                server.createTCPConnectionThread();
+                server.createTCPConnectionCreationThread();
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }

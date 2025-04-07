@@ -31,7 +31,7 @@ public class Client {
     private PrintWriter out;
 
     public ClientQuestion currQuestion;
-    
+
     private int score = 0;
 
     private String username;
@@ -53,7 +53,7 @@ public class Client {
         }
     }
 
-    public String getUsername(){
+    public String getUsername() {
         return this.username;
     }
 
@@ -70,27 +70,26 @@ public class Client {
         try {
             Socket socket = new Socket(this.serverIP, this.serverPortTCP);
 
-            System.out.println(BLUE + "Starting tcp thread on port: " + socket.getPort() + RESET);
+            System.out.println(BLUE + "Starting tcp thread on port: " + socket.getLocalPort() + RESET);
 
             // Setup output stream to send data to the server
             this.out = new PrintWriter(socket.getOutputStream(), true);
 
             // Setup input stream to receive data from the server
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            
-        } catch(ConnectException e) {
+
+        } catch (ConnectException e) {
             System.out.println(RED + "Failed to connect to server, make sure the server is running on correct port and IP." + RESET);
             System.out.println(RED + "Exiting..." + RESET);
             System.exit(-1);
         }
         // handshake
-        out.println("Hello I would like to connect");
         out.println(this.username); // username = clientID
         String message = in.readLine();
-        if(message == null) {
+        if (message == null) {
             System.out.println(RED + "Server may have disconnected exiting..." + RESET);
             System.exit(-1);
-        }else if(message.toLowerCase().strip().startsWith("reject")) {
+        } else if (message.toLowerCase().strip().startsWith("reject")) {
             System.out.println(RED + "Server rejected connection. '" + message + "'" + RESET);
             System.exit(-1);
         } else {
@@ -101,7 +100,7 @@ public class Client {
         clientGameLoop();
     }
 
-    public void sendAnswer(int answerChoice){
+    public void sendAnswer(int answerChoice) {
         // send answer to server over TCP
         out.println(answerChoice);
     }
@@ -139,14 +138,14 @@ public class Client {
         while (true) {
             try {
                 serverMessage = in.readLine();
-                if(serverMessage == null){
+                if (serverMessage == null) {
                     throw new Exception();
                 }
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
                 System.exit(-1);
             }
-        
+
             if (serverMessage.equalsIgnoreCase("kill")) {
                 System.out.println(RED + "You have been removed from the game by the server." + RESET);
                 System.exit(0);
@@ -184,35 +183,42 @@ public class Client {
                 window.pollingButtons();
                 window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
                 printServerQuestion(currQuestion);
-            } else if(serverMessage.toLowerCase().startsWith("leaderboard")) {
+            } else if (serverMessage.toLowerCase().startsWith("leaderboard")) {
                 serverMessage = serverMessage.substring("leaderboard".length());
                 window.reportScores(serverMessage);
                 System.out.println("SCORE REPORT METHOD CALLED, message = " + serverMessage);
-            } else if(serverMessage.toLowerCase().startsWith("late")) {
+            } else if (serverMessage.toLowerCase().startsWith("late")) {
                 serverMessage = serverMessage.substring("late question".length());
                 currQuestion = ClientQuestion.deserialize(serverMessage);
+                System.out.println(MAGENTA + "LATE QUESTION: " + currQuestion.getQuestionText() + "(" + currQuestion.getQuestionIndex() + ")" + RESET);
                 window.lateTimer();
                 window.updateQuestionText(currQuestion);
                 window.pollingButtons();
                 window.updateGameStateLabel("Polling... BUZZ BUZZ BUZZ!");
                 // make the labels make sense
-            } else if(serverMessage.toLowerCase().startsWith("correct answer")) {
+            } else if (serverMessage.toLowerCase().startsWith("ANSWERING")) {
+                serverMessage = serverMessage.substring("ANSWERING".length());
+                currQuestion = ClientQuestion.deserialize(serverMessage);
+                System.out.println(MAGENTA + "Joined mid answering, Question: " + currQuestion.getQuestionText() + "(" + currQuestion.getQuestionIndex() + ")" + RESET);
+                window.disableAllButtons();
+                window.updateQuestionText(currQuestion);
+                window.updateGameStateLabel("Joined late on answering, waiting for next question...");
+                // window.lateTimer();
+            } else if (serverMessage.toLowerCase().startsWith("correct answer")) {
                 serverMessage = serverMessage.substring("correct answer".length());
                 int correctIndex = Integer.parseInt(serverMessage.strip());
                 window.updateAnswerFeedback("Correct answer: " + currQuestion.getAnswers()[correctIndex]);
                 window.disableAllButtons();
                 window.updateGameStateLabel("Waiting for next question...");
-            }
-            else {
+            } else {
                 System.out.println(YELLOW + "UNKNOWN MESSAGE: " + serverMessage + RESET);
             }
-        
+
             Thread.sleep(10);
         }
     }
 
-
-    public void printServerQuestion(ClientQuestion cq){
+    public void printServerQuestion(ClientQuestion cq) {
         System.out.println(MAGENTA + cq.getQuestionText() + RESET);
         for (String choice : cq.getAnswers()) {
             System.out.println(choice);
@@ -220,11 +226,16 @@ public class Client {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        // System.out.println(Arrays.toString(args));
+        // server ip arg - REQUIRED
+        // username – REQUIRED
+
+        // serverTCPPort
+        // serverUDPPort
+
         // TODO Add args for serverIP, (optional) serverPortTCP, serverPortUDP
         String username = "TestUser";
-        
-        if(args.length > 0) {
+
+        if (args.length > 0) {
             username = args[0];
         }
 

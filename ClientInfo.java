@@ -12,7 +12,7 @@ public class ClientInfo {
 
     public int score = 0;
 
-    private boolean isAlive = false;
+    private boolean isAlive;
 
     private String TCPIP;
 
