@@ -137,8 +137,7 @@ public class Client {
     private void processResponse() throws IOException, InterruptedException, ClassNotFoundException {
         System.out.println(BLUE + "READY TO RECIEVE FROM SERVER" + RESET);
 
-        int secondsTimeout = 1;
-        clientTCPSocket.setSoTimeout(secondsTimeout * 1000);
+        clientTCPSocket.setSoTimeout(5000);
         while (true) {
             String serverMessage = "";
 
@@ -146,7 +145,12 @@ public class Client {
                 try {
                     serverMessage = in.readLine();
                 } catch (SocketTimeoutException e) {
-                    continue; // nothing read
+                    System.out.println(RED + "No message in last 5 seconds" + RESET);
+                    if (!clientTCPSocket.isConnected() || clientTCPSocket.isClosed()) {
+                        System.out.println(RED + "Server may have disconnected, exiting..." + RESET);
+                        System.exit(-1);
+                    }
+                    continue;
                 }
                 if (serverMessage == null) {
                     throw new SocketException();
