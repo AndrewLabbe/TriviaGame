@@ -257,7 +257,14 @@ public class Server {
                     info.queueSendMessage("ANSWERING" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
 
+                int secondsBetweenPings = 2;
+                long lastPing = -1;
                 while (true) {
+                    // if time to ping then ping
+                    long timeSinceLastPing = System.currentTimeMillis() - lastPing;
+                    if (timeSinceLastPing > secondsBetweenPings * 1000) {
+                        out.println("ping");
+                    }
                     // send queued messages to client
                     while (!info.sendToClientQueue.isEmpty()) {
                         String sendMessage = info.sendToClientQueue.poll();
@@ -271,12 +278,6 @@ public class Server {
                     try {
                         try {
                             String message = in.readLine(); // read the message
-
-                            if (message == null)
-                                throw new SocketException();
-                            else if (message == "ping") {
-                                // do nothing
-                            }
 
                             info.recievedClientAnswersQueue.add(message); // put message into queue to be read by gameloop
                             // System.out.println("Client says: " + message);
