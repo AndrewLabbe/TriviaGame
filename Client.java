@@ -117,7 +117,8 @@ public class Client {
 
     public void buzz() throws UnknownHostException {
         long timeStamp = System.currentTimeMillis();
-        String message = username + "$" + timeStamp + "$" + currQuestion.getQuestionIndex();
+        String message = username + "$" + timeStamp;
+        System.out.println("BUZZING: " + message + " on question " + currQuestion.getQuestionText());
         byte[] buffer = message.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         // send pack with content of timestamp
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(this.serverIP),
@@ -187,6 +188,10 @@ public class Client {
                 serverMessage = serverMessage.substring("leaderboard".length());
                 window.reportScores(serverMessage);
                 System.out.println("SCORE REPORT METHOD CALLED, message = " + serverMessage);
+            } else if (serverMessage.toLowerCase().startsWith("finished")) {
+                window.disableAllButtons();
+                window.updateGameStateLabel("Quiz Finished, closing in...");
+                window.startTimer(20);
             } else if (serverMessage.toLowerCase().startsWith("late")) {
                 serverMessage = serverMessage.substring("late question".length());
                 currQuestion = ClientQuestion.deserialize(serverMessage);

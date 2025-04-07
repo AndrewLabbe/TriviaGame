@@ -85,12 +85,12 @@ public class Server {
 
                     byte[] data = incomingPacket.getData();
                     // try to convert to long
-                    String message = new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                    String baseMessage = new String(data, java.nio.charset.StandardCharsets.UTF_8);
                     String validString = "";
 
                     // bytes include hidden characters, manual parsing needed
-                    for (int i = 0; i < message.length(); i++) {
-                        char currentChar = message.charAt(i);
+                    for (int i = 0; i < baseMessage.length(); i++) {
+                        char currentChar = baseMessage.charAt(i);
 
                         // Check if the character is '$' or a digit
                         if (currentChar == '$' || Character.isDigit(currentChar) || Character.isLetter(currentChar)) {
@@ -100,16 +100,14 @@ public class Server {
                     }
 
                     String[] parts = validString.split("\\$");
-                    int questionIndex = Integer.parseInt(parts[2]);
-                    if (questionIndex != currentQuestion) {
-                        System.out.println(YELLOW + "Recieved buzz from earlier question, moving on and ignoring." + RESET);
-                        continue;
-                    }
-                    message = parts[0] + "$" + parts[1];
+                    System.out.println("OG Message: " + validString + " Split: " + Arrays.toString(parts));
+
+                    String item = parts[0] + "$" + parts[1];
 
                     // when add to queue, use clientUsername and timestamp
-                    UDPMessageQueue.add(message);
-                    System.out.println(CYAN + "Client buzzed: " + message + RESET);
+                    UDPMessageQueue.add(item);
+                    System.out.println(CYAN + "Client buzzed: " + item + RESET);
+
                     Thread.sleep(5);
                 } catch (SocketTimeoutException e) {
                     // Do nothing
@@ -342,7 +340,8 @@ public class Server {
                 break; // no more questions
             }
 
-            long buzzTimeSeconds = 15;
+            // long buzzTimeSeconds = 15;
+            long buzzTimeSeconds = 7;
             System.out.println(GREEN + "Polling for " + buzzTimeSeconds + " seconds..." + RESET);
             Thread.sleep(buzzTimeSeconds * 1000);
 
@@ -474,6 +473,10 @@ public class Server {
             sendLeaderboardToClients();
             // moves to final gamestate
             gameState = GameState.FINAL_SCORES;
+            for (String clientUsername : clientSockets.keySet()) {
+                ClientInfo info = clientSockets.get(clientUsername);
+                info.queueSendMessage("FINISHED");
+            }
             int secToSleep = 20;
             Thread.sleep(secToSleep * 1000);
             // game is done kill all clients
