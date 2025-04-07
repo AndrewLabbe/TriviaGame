@@ -8,10 +8,9 @@ public class ClientInfo {
     // public queue fromClientQueue
 
     public ConcurrentLinkedQueue<String> sendToClientQueue = new ConcurrentLinkedQueue<String>();
-    public ConcurrentLinkedQueue<String> recievedFromClientsQueue = new ConcurrentLinkedQueue<String>();
+    public ConcurrentLinkedQueue<String> recievedClientAnswersQueue = new ConcurrentLinkedQueue<String>();
 
     public int score = 0;
-
 
     private boolean isAlive = false;
 
@@ -39,11 +38,11 @@ public class ClientInfo {
         return score;
     }
 
-    public void setActive(boolean b){
+    public void setActive(boolean b) {
         this.isAlive = b;
     }
 
-    public boolean isAlive(){
+    public boolean isAlive() {
         return this.isAlive;
     }
 

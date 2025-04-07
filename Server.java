@@ -59,7 +59,6 @@ public class Server {
             e.printStackTrace();
         }
 
-
         QuestionConfig qConfig = new QuestionConfig("questions.txt");
         questionList = qConfig.getQuestionsAsArray();
     }
@@ -85,12 +84,12 @@ public class Server {
                     byte[] data = incomingPacket.getData();
                     // try to convert to long
                     String message = new String(data, java.nio.charset.StandardCharsets.UTF_8);
-                    String validString = ""; 
+                    String validString = "";
 
                     // bytes include hidden characters, manual parsing needed
                     for (int i = 0; i < message.length(); i++) {
                         char currentChar = message.charAt(i);
-                        
+
                         // Check if the character is '$' or a digit
                         if (currentChar == '$' || Character.isDigit(currentChar) || Character.isLetter(currentChar)) {
                             // Process the character (here we print it)
@@ -100,7 +99,7 @@ public class Server {
 
                     String[] parts = validString.split("\\$");
                     int questionIndex = Integer.parseInt(parts[2]);
-                    if(questionIndex != currentQuestion){
+                    if (questionIndex != currentQuestion) {
                         System.out.println(YELLOW + "Recieved buzz from earlier question, moving on and ignoring." + RESET);
                         continue;
                     }
@@ -160,7 +159,7 @@ public class Server {
         // String clientIP = clientSocket.getInetAddress().getHostAddress();
         // int clientPort = clientSocket.getPort();
         // String clientUsername = clientIP + ":" + clientPort;
-        
+
         // String clientUsername = "" + currentIDIteration;
         // currentIDIteration++;
 
@@ -171,37 +170,36 @@ public class Server {
 
         // assign client ID
         System.out.println("Client says: " + in.readLine());
-        
+
         // Client will send username as second send
         String clientUsername = in.readLine();
         // out.println(info.getClientID());
-        
+
         // Validate username/check if is a reconnect
-        
+
         // is the username valid format
-        if(clientUsername == null || clientUsername.equals("")){
+        if (clientUsername == null || clientUsername.equals("")) {
             out.println("REJECT: username empty/null please provide a username.");
             System.out.println(RED + "Client sent empty username, rejecting connection" + RESET);
             return;
         }
         // Only allow alphanumeric characters
-        if(!clientUsername.matches("[a-zA-Z0-9]+")){
+        if (!clientUsername.matches("[a-zA-Z0-9]+")) {
             out.println("REJECT: username invalid, only letters and numbers allowed in username.");
             System.out.println(RED + "Client sent username has symbols/non alphanumeric characters, rejecting connection" + RESET);
             return;
         }
 
-
-        if(clientSockets.containsKey(clientUsername)){
+        if (clientSockets.containsKey(clientUsername)) {
             ClientInfo existingClient = clientSockets.get(clientUsername);
-            if(existingClient.isAlive()){
+            if (existingClient.isAlive()) {
                 out.println("REJECT: username actively already in use. Please use a different username.");
                 System.out.println(RED + "Client sent username already in use, rejecting connection" + RESET);
                 return;
             } else {
                 // Rejoin with same username and that client is no longer alive
                 // allow rejoin if IP matches as well
-                if(existingClient.isUsernameIPMatch(clientUsername, IP)){
+                if (existingClient.isUsernameIPMatch(clientUsername, IP)) {
                     // rejoin
                     System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
                     existingClient.setActive(true);
@@ -217,21 +215,6 @@ public class Server {
             }
         }
 
-        // for (ClientInfo tmpInfo : clientSockets.values()) {
-        //     if (tmpInfo.isARejoin(clientUsername, IP)) {
-        //         if(tmpInfo.isAlive()) {
-        //             out.println("REJECT: user already active under username:IP combo");
-        //             return;
-        //         }
-
-        //         System.out.println(GREEN + "Client has preivously connected, reinitializing client state..." + RESET);
-        //         hasConnectedB4 = true;
-        //         tmpInfo.setActive(true);
-        //         startClientThread(tmpInfo, in, out);
-        //         break;
-        //     }
-        // }
-
         // if reaches here then know its a new user as rejoins return on handled
         ClientInfo info = new ClientInfo(clientUsername, IP);
         clientSockets.put(clientUsername, info);
@@ -246,52 +229,54 @@ public class Server {
     private void startClientThread(ClientInfo info, BufferedReader in, PrintWriter out, Socket clientSocket) throws IOException, InterruptedException {
         // create new thread
         new Thread(() -> {
+            // TODO There are 3 trys for socket exceptions
             try {
                 out.println("ACCEPTED: clientUsername: " + info.getClientUsername());
-                info.recievedFromClientsQueue.clear();
+                // if client just joined then clear any unresolved messages as they are only relevant while active
+                info.recievedClientAnswersQueue.clear();
                 info.sendToClientQueue.clear();
-                clientSocket.setSoTimeout(1);
+                clientSocket.setSoTimeout(1); // allows us to use readln without it blocking forever
+                // Implemented to solve server knowing when client is dead
 
-                // No question answers should exist before polling so wipe in case
-                wipeQueuedAnswered();
-                if(gameState == GameState.POLLING){
+                // wipeQueuedAnswered(); this should not be called here as then *all clients would be wiped every time a client joined late or rejoined
+                // answers will be wiped in game loop regardless of whether client is alive or dead before polling which covers this case
+                if (gameState == GameState.POLLING) {
                     info.queueSendMessage("LATE QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
                 }
+
                 while (true) {
-                    // send message first
-                    while(!info.sendToClientQueue.isEmpty()) {
-                        // System.out.println("sending: " + info.sendToClientQueue.peek());
+                    // send queued messages to client
+                    while (!info.sendToClientQueue.isEmpty())
                         out.println(info.sendToClientQueue.poll());
-                    }
 
                     // check if client has sent a message
                     try {
                         try {
                             String message = in.readLine(); // read the message
-                        
-                            if(message == null)
+
+                            if (message == null)
                                 throw new SocketException();
 
-                        info.recievedFromClientsQueue.add(message); // put message into queue to be read by gameloop
-                        System.out.println("Client says: " + message);
+                            info.recievedClientAnswersQueue.add(message); // put message into queue to be read by gameloop
+                            System.out.println("Client says: " + message);
+
+                            Thread.sleep(10);
+                            continue;
+                        } catch (SocketTimeoutException e) {
+                            // wait one second to readline if timeout in 1 second just move on
+                        }
 
                         Thread.sleep(10);
-                        continue;
-                    } catch(SocketTimeoutException e ) {
-                        // wait one second to readline if timeout in 1 second just move on
+                    } catch (SocketException e) {
+                        System.out.println(RED + "Socket Exception on client " + info.getClientUsername() + RESET);
+                        info.setActive(false);
+                        break;
                     }
-                    
-                    Thread.sleep(10);
-                } catch(SocketException e) {
-                    System.out.println(RED + "Socket Exception on client "+ info.getClientUsername() + RESET);
-                    info.setActive(false);
-                    break;
-                }
 
                     // Thread.sleep(10);
                 }
-                
-            } catch (IOException | InterruptedException e) { 
+
+            } catch (IOException | InterruptedException e) {
                 info.setActive(false); // TODO logic is not throwing an error
 
                 e.printStackTrace();
@@ -299,7 +284,7 @@ public class Server {
                 // TODO decide if all exceptions should quit or if say io exception should keep going
             }
         }).start();
-        
+
     }
 
     public void runGameLoop() throws InterruptedException, IOException {
@@ -312,111 +297,114 @@ public class Server {
         gameState = GameState.WAITING_FOR_PLAYERS;
         System.out.println(MAGENTA + "Currently waiting for players to join..." + RESET);
 
-        while(clientSockets.size() == 0){
+        while (clientSockets.size() == 0) {
             Thread.sleep(1000);
         }
 
         int secondsForJoin = 10;
         System.out.println(GREEN + "At least one client has joined, waiting for additional clients to join for " + secondsForJoin + " seconds..." + RESET);
         Thread.sleep(secondsForJoin * 1000);
-        
 
         // Thread for polling, stays constantly open because it will just receive
- 
-        // TODO index out of bound cause we dont check when out of questions
-        int numQuestion = questionList.length; // TODO implement
+
         while (true) {
             // switch game state to polling waiting for clients to buzz
             gameState = GameState.POLLING;
-            
+
             // sending question
+            wipeQueuedAnswered(); // in case some answer got lost and not processed ie arrived late clear b4 starting polling
+            // a queued answer at this point could not be possibly valid at this point
             sendQuestion();
 
-            // waiting for 15 seconds
             System.out.println(GREEN + "Polling for 15 seconds..." + RESET);
             long buzzTime = 15000;
             Thread.sleep(buzzTime);
+
             gameState = GameState.CLIENT_ANSWERING;
             // poll.join();
             System.out.println(GREEN + "Polling done, moving to client answering..." + RESET);
 
-            // parse queue for who answered first
+            // No-one buzzed
             if (UDPMessageQueue.isEmpty()) {
                 System.out.println(RED + "No clients buzzed, not showing answers next question..." + RESET);
-                // TODO what to do when no clients answered; send "next" move to next question
                 sendNext();
+                // sends next when restarts loop will send new question then
                 continue;
             } else {
-                // split on '$'
-                System.out.println("Splitting " + UDPMessageQueue.peek());
-                String[] parts = UDPMessageQueue.poll().split("\\$");
-                System.out.println("Parts: " + Arrays.toString(parts));
-
-                String firstClientID = parts[0]; // first id in queue
-                long minTime = Long.MAX_VALUE; // first timestamp in queue
-
-                // find first client who buzzed
+                // loop thru queued messages until found first buzz of living clients
+                ClientInfo firstClient = null; // fastest client buzz
+                long minTime = Long.MAX_VALUE; // fastest buzz timestamp
                 while (!UDPMessageQueue.isEmpty()) {
-                    parts = UDPMessageQueue.poll().split("\\$");
+                    String message = UDPMessageQueue.poll();
+
+                    String[] parts = message.split("\\$");
                     String clientUsername = parts[0];
+
+                    ClientInfo client = clientSockets.get(clientUsername);
+                    if (!client.isAlive())
+                        continue; // if client is dead skip
+                    // client is alive
+
+                    // check if client buzzed sooner
                     long timeStamp = Long.parseLong(parts[1]);
-                    if (timeStamp < minTime && clientSockets.get(clientUsername).isAlive()) {
+                    if (timeStamp < minTime) {
                         minTime = timeStamp;
-                        firstClientID = clientUsername;
+                        firstClient = client;
                     }
                 }
+
+                if (firstClient == null) {
+                    System.out.println(RED + "No clients buzzed, next question (Not showing answer)..." + RESET);
+                    sendNext();
+                    // sends next when restarts loop will send new question then
+                    continue;
+                }
+
+                // there is a first client
                 // response with "ack" for first client and "negative-ack" for others
                 for (String clientUsername : clientSockets.keySet()) {
                     ClientInfo info = clientSockets.get(clientUsername);
-                    if (clientUsername.equals(firstClientID)) {
+                    // if is first client
+                    if (clientUsername.equals(firstClient.getClientUsername())) {
                         info.queueSendMessage("ack");
-                    } else {
+                        System.out.println(GREEN + "Client " + clientUsername + " buzzed first!" + RESET);
+                    } else { // else not first client
                         info.queueSendMessage("negative-ack");
                     }
                 }
-
-                ClientInfo firstClient = clientSockets.get(firstClientID);
-                // wait for 10 seconds to get answer
+                // wait for 10 seconds to get answer from first client
+                System.out.println(CYAN + "Waiting for client " + firstClient.getClientUsername() + " to answer..." + RESET);
                 int waitTime = 10000;
                 Thread.sleep(waitTime);
 
-                // TODO When we recieve a UDP packet the client port is different for UPD and TCP
-                /*
-                 * When we get tcp connection we give the id as <ip>:<TCP port>
-                 * When the client buzzes the incoming packet is from <ip>:<UDP port>
-                 * So if we try to extract the client id from the incoming packet we will not
-                 * find it in the map
-                 */
-                if(firstClient == null) {
-                    System.out.println("Null first client moving on");
-
-                } else if (!firstClient.recievedFromClientsQueue.isEmpty()) {
-                    String response = firstClient.recievedFromClientsQueue.poll();
+                // if recieved an answer
+                if (!firstClient.recievedClientAnswersQueue.isEmpty()) {
+                    String response = firstClient.recievedClientAnswersQueue.poll();
                     System.out.println("Client answered: " + response);
 
-                    int index = -1;
-                    try{
-                        index = Integer.parseInt(response);
+                    try {
+                        int index = Integer.parseInt(response);
 
-                        if(index == questionList[currentQuestion].getCorrectQuestionIndex()){
+                        // if correct
+                        if (index == questionList[currentQuestion].getCorrectQuestionIndex()) {
                             firstClient.queueSendMessage("correct");
                             firstClient.score += 10;
-                        }
-                        else{
+                        } else { // wrong
                             firstClient.queueSendMessage("wrong");
                             firstClient.score -= 10;
                         }
-                    }
-                    catch(NumberFormatException e){
-                        System.out.println(RED + "Incorrect format of Client response; response ignored no points lost..." + RESET);
+                    } catch (NumberFormatException e) {
+                        System.out.println(RED + "Format or corruption error from Client answer; response ignored no points lost..." + RESET);
                     }
 
-                } else {
+                } else { // client did not answer
                     System.out.println("Client did not answer");
                     firstClient.queueSendMessage("none");
                     firstClient.score -= 20;
                 }
             }
+
+            // give client answer and allow showing for 5 seconds
             gameState = GameState.SHOWING_ANSWERS;
             System.out.println("Showing answers...");
             sendAnswerIndex();
@@ -436,6 +424,10 @@ public class Server {
         sendLeaderboardToClients();
     }
 
+    /**
+     * Sends the next question to all clients
+     * ITERATES CURRENTQUESION INDEX ON METHOD CALL
+     */
     private void sendNext() {
         for (String clientUsername : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientUsername);
@@ -444,53 +436,61 @@ public class Server {
         currentQuestion++;
     }
 
+    /**
+     * Sends the current question to all clients
+     * If there are no more questions, sends the final scores
+     * 
+     * @throws InterruptedException
+     */
     private void sendQuestion() throws InterruptedException {
-        if(currentQuestion >= questionList.length){
+        if (currentQuestion >= questionList.length) {
             System.out.println("No more questions, onto the final scores");
             sendLeaderboardToClients();
             // moves to final gamestate
             gameState = GameState.FINAL_SCORES;
-            Thread.sleep(20000);
+            int secToSleep = 20;
+            Thread.sleep(secToSleep * 1000);
+            // game is done kill all clients
             for (String clientUsername : clientSockets.keySet()) {
                 ClientInfo info = clientSockets.get(clientUsername);
                 info.queueSendMessage("kill");
             }
             return;
         }
-        else{
-            System.out.println(questionList[currentQuestion].getQuestionText());
-            System.out.println("Answers: "+ Arrays.toString(questionList[currentQuestion].getAnswers()));
-            for (String clientUsername : clientSockets.keySet()) {
-                ClientInfo info = clientSockets.get(clientUsername);
-                info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
-                // info.out.println(new ClientQuestion(questionList[currentQuestion].getQuestionText(), questionList[currentQuestion].getAnswers()));
-            }
+        // there is available question
+        System.out.println(questionList[currentQuestion].getQuestionText());
+        System.out.println("Answers: " + Arrays.toString(questionList[currentQuestion].getAnswers()));
+        for (String clientUsername : clientSockets.keySet()) {
+            ClientInfo info = clientSockets.get(clientUsername);
+            info.queueSendMessage("QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
         }
     }
 
+    /**
+     * Sends the leaderboard to all clients, contains usernames of all clients + scores in order of most to least
+     */
     public void sendLeaderboardToClients() {
         ArrayList<ClientInfo> leaderboard = createLeaderboard();
         StringBuilder leaderboardMessage = new StringBuilder("Leaderboard");
-    
+
         for (int i = 0; i < leaderboard.size(); i++) {
             ClientInfo client = leaderboard.get(i);
             leaderboardMessage.append((i + 1) + ". " + client.getClientUsername() + ": " + client.getScore() + "$");
         }
-    
+
         String message = leaderboardMessage.toString();
-    
+
         // Send the leaderboard message to all clients
         for (String clientUsername : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientUsername);
             info.queueSendMessage(message);
         }
     }
-    
-    
 
     public ArrayList<ClientInfo> createLeaderboard() {
         ArrayList<ClientInfo> scores = new ArrayList<ClientInfo>();
-        
+
+        // Loop through all clients to create a list out of map
         for (String clientUsername : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientUsername);
             scores.add(info);
@@ -508,16 +508,18 @@ public class Server {
         return scores; // return the sorted list
     }
 
-
-    // TODO could cause error
+    /**
+     * Wipes the queued answered for all clients
+     */
     public void wipeQueuedAnswered() {
         for (String clientUsername : clientSockets.keySet()) {
             ClientInfo info = clientSockets.get(clientUsername);
-            info.recievedFromClientsQueue.clear();
+            info.recievedClientAnswersQueue.clear();
         }
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
+
         Server server = new Server(9080, 9090);
 
         new Thread(() -> {
