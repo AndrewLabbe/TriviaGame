@@ -102,7 +102,7 @@ public class Server {
                     String[] parts = validString.split("\\$");
 
                     String username = parts[0];
-                    if(!clientSockets.containsKey(username) || clientSockets.get(username) == null || !clientSockets.get(username).isAlive())
+                    if (!clientSockets.containsKey(username) || clientSockets.get(username) == null || !clientSockets.get(username).isAlive())
                         return;
                     String item = username + "$" + parts[1];
 
@@ -274,6 +274,9 @@ public class Server {
 
                             if (message == null)
                                 throw new SocketException();
+                            else if (message == "ping") {
+                                // do nothing
+                            }
 
                             info.recievedClientAnswersQueue.add(message); // put message into queue to be read by gameloop
                             // System.out.println("Client says: " + message);
@@ -390,7 +393,7 @@ public class Server {
                     }
                 }
 
-                if(firstClient == null)
+                if (firstClient == null)
                     continue;
                 // there is a first client
                 // response with "ack" for first client and "negative-ack" for others

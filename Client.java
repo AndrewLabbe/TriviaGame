@@ -138,9 +138,19 @@ public class Client {
         System.out.println(BLUE + "READY TO RECIEVE FROM SERVER" + RESET);
 
         clientTCPSocket.setSoTimeout(5000);
+
+        new Thread(() -> {
+            try {
+                while (true) {
+                    out.println("ping");
+                    Thread.sleep(5000);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
         while (true) {
             String serverMessage = "";
-
             try {
                 try {
                     serverMessage = in.readLine();
@@ -154,7 +164,8 @@ public class Client {
                 }
                 if (serverMessage == null) {
                     throw new SocketException();
-                }
+                } else if (serverMessage == "ping")
+                    continue;
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
                 System.exit(-1);
