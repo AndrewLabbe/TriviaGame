@@ -100,9 +100,11 @@ public class Server {
                     }
 
                     String[] parts = validString.split("\\$");
-                    System.out.println("OG Message: " + validString + " Split: " + Arrays.toString(parts));
 
-                    String item = parts[0] + "$" + parts[1];
+                    String username = parts[0];
+                    if(!clientSockets.containsKey(username) || clientSockets.get(username) == null || !clientSockets.get(username).isAlive())
+                        return;
+                    String item = username + "$" + parts[1];
 
                     // when add to queue, use clientUsername and timestamp
                     UDPMessageQueue.add(item);
@@ -300,6 +302,17 @@ public class Server {
                 // TODO decide if all exceptions should quit or if say io exception should keep going
             }
             System.out.println(YELLOW + "Disconnecting client thread for client: " + info.getClientUsername() + RESET);
+            try {
+                System.out.println("Closing Streams");
+                in.close();
+                out.close();
+                clientSocket.shutdownInput();
+                clientSocket.shutdownOutput();
+                clientSocket.close();
+                System.out.println("Successfully Closed");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }).start();
 
     }
@@ -377,6 +390,8 @@ public class Server {
                     }
                 }
 
+                if(firstClient == null)
+                    continue;
                 // there is a first client
                 // response with "ack" for first client and "negative-ack" for others
                 for (String clientUsername : clientSockets.keySet()) {
