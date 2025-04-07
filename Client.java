@@ -7,6 +7,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 public class Client {
@@ -26,13 +28,12 @@ public class Client {
     private ClientWindow window;
 
     private DatagramSocket clientUDPSocket;
+    private Socket clientTCPSocket;
 
     private BufferedReader in;
     private PrintWriter out;
 
     public ClientQuestion currQuestion;
-
-    private int score = 0;
 
     private String username;
 
@@ -68,15 +69,15 @@ public class Client {
         // create the connection, in and out
         // Socket socket = new Socket("localhost", 9090);
         try {
-            Socket socket = new Socket(this.serverIP, this.serverPortTCP);
+            clientTCPSocket = new Socket(this.serverIP, this.serverPortTCP);
 
-            System.out.println(BLUE + "Starting tcp thread on port: " + socket.getLocalPort() + RESET);
+            System.out.println(BLUE + "Starting tcp thread on port: " + clientTCPSocket.getLocalPort() + RESET);
 
             // Setup output stream to send data to the server
-            this.out = new PrintWriter(socket.getOutputStream(), true);
+            this.out = new PrintWriter(clientTCPSocket.getOutputStream(), true);
 
             // Setup input stream to receive data from the server
-            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.in = new BufferedReader(new InputStreamReader(clientTCPSocket.getInputStream()));
 
         } catch (ConnectException e) {
             System.out.println(RED + "Failed to connect to server, make sure the server is running on correct port and IP." + RESET);
@@ -135,12 +136,20 @@ public class Client {
     // TODO Possible input {"ack", "negative-ack", "correct", "wrong", "next"}
     private void processResponse() throws IOException, InterruptedException, ClassNotFoundException {
         System.out.println(BLUE + "READY TO RECIEVE FROM SERVER" + RESET);
-        String serverMessage = "";
+
+        int secondsTimeout = 1;
+        clientTCPSocket.setSoTimeout(secondsTimeout * 1000);
         while (true) {
+            String serverMessage = "";
+
             try {
-                serverMessage = in.readLine();
+                try {
+                    serverMessage = in.readLine();
+                } catch (SocketTimeoutException e) {
+                    continue; // nothing read
+                }
                 if (serverMessage == null) {
-                    throw new Exception();
+                    throw new SocketException();
                 }
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
@@ -164,16 +173,10 @@ public class Client {
                 window.startTimer(10);
             } else if (serverMessage.equals("correct")) {
                 System.out.println(GREEN + "Correct! +10 points." + RESET);
-                score += 10;
-                window.updateScore(score);
             } else if (serverMessage.equals("wrong")) {
                 System.out.println(YELLOW + "Incorrect. -10 points." + RESET);
-                score -= 10;
-                window.updateScore(score);
             } else if (serverMessage.equals("none")) {
                 System.out.println(YELLOW + "No answer. -20 points." + RESET);
-                score -= 20;
-                window.updateScore(score);
             } else if (serverMessage.equals("next")) {
                 System.out.println(BLUE + "Next question..." + RESET);
             } else if (serverMessage.toLowerCase().startsWith("question")) {
@@ -244,7 +247,9 @@ public class Client {
             username = args[0];
         }
 
-        Client client = new Client("localhost", 9080, 9090, username);
+        String serverIP = "10.115.110.178";
+        System.out.println(MAGENTA + "Username " + username + ": Connecting to server at " + serverIP + RESET);
+        Client client = new Client(serverIP, 9080, 9090, username);
         client.establishConnectToServer();
     }
 

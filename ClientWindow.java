@@ -144,7 +144,14 @@ public class ClientWindow implements ActionListener {
 			String[] lines = scores.split("\\$");
 			scorePanel.add(new JLabel("SCORES:"));
 			for (int i = 0; i < lines.length; i++) {
+				String username = lines[i].substring(". ".length() + 1, lines[i].indexOf(":")).trim();
+				System.out.println(username);
+				// updates self score based on server score
+				if (username.equals(client.getUsername())) {
+					updateScore(Integer.parseInt(lines[i].substring(lines[i].indexOf(":") + 1).trim()));
+				}
 				System.out.println(lines[i]);
+
 				scorePanel.add(new JLabel(lines[i]));
 			}
 		}

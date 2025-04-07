@@ -340,8 +340,7 @@ public class Server {
                 break; // no more questions
             }
 
-            // long buzzTimeSeconds = 15;
-            long buzzTimeSeconds = 7;
+            long buzzTimeSeconds = 15;
             System.out.println(GREEN + "Polling for " + buzzTimeSeconds + " seconds..." + RESET);
             Thread.sleep(buzzTimeSeconds * 1000);
 

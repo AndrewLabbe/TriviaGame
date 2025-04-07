@@ -6,11 +6,9 @@
 
 - Score is not updated _client-side_ probably when rejoin
   - Could fix or could just remove client side score because it is sent in leaderboard
-- Send correct gamestate on rejoin client – starts as waiting for players no matter what state
 
 CHECK
 
-- Put more consideration on sematics of client joining late
 - just check if server is tracking score properly, should be working but never actually tested
 
 Test Cases
