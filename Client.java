@@ -10,6 +10,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Client {
     public static final String RESET = "\u001B[0m";
@@ -41,7 +43,7 @@ public class Client {
         this.serverIP = serverIP;
         this.serverPortTCP = serverPortTCP;
         this.serverPortUDP = serverPortUDP;
-
+        System.out.println(BLUE + "Will use " + serverPortUDP + " for all UDP packets" + RESET);
         this.username = username;
 
         this.window = new ClientWindow(this);
@@ -71,7 +73,8 @@ public class Client {
         try {
             clientTCPSocket = new Socket(this.serverIP, this.serverPortTCP);
 
-            System.out.println(BLUE + "Starting tcp thread on port: " + clientTCPSocket.getLocalPort() + RESET);
+            System.out.println(GREEN + "Connected to server: " + this.serverIP + ":" + clientTCPSocket.getPort() + RESET);
+            System.out.println(BLUE + "Starting tcp thread on client port: " + clientTCPSocket.getLocalPort() + RESET);
 
             // Setup output stream to send data to the server
             this.out = new PrintWriter(clientTCPSocket.getOutputStream(), true);
@@ -80,11 +83,20 @@ public class Client {
             this.in = new BufferedReader(new InputStreamReader(clientTCPSocket.getInputStream()));
 
         } catch (ConnectException e) {
-            System.out.println(RED + "Failed to connect to server, make sure the server is running on correct port and IP." + RESET);
+            System.out.println(RED + "Failed to connect to server, make sure the server is running and client has correct server IP and ports" + RESET);
             System.out.println(RED + "Exiting..." + RESET);
             System.exit(-1);
         } catch (SocketException e) {
             System.out.println(RED + "No network connection, please connect to wifi" + RESET);
+            System.exit(-1);
+        } catch (UnknownHostException e) {
+            System.out.println(RED + "Unknown host, please check the value and format of your server IP" + RESET);
+            System.exit(-1);
+        } catch (IOException e) {
+            System.out.println(RED + "IO Exception, please check the server IP and port" + RESET);
+            System.exit(-1);
+        } catch (Exception e) {
+            System.out.println(RED + "CONNECTION ERROR: Please check connectivity, correct server IP and PORT" + RESET);
         }
         // handshake
         out.println(this.username); // username = clientID
@@ -265,16 +277,38 @@ public class Client {
         // serverTCPPort
         // serverUDPPort
 
-        // TODO Add args for serverIP, (optional) serverPortTCP, serverPortUDP
-        String username = "TestUser";
+        String[] reqArgs = { "--serverip", "--username" };
+        Map<String, String> optArgs = new HashMap<>();
+        int tcpPort = 9080;
+        int udpPort = 9090;
 
-        if (args.length > 0) {
-            username = args[0];
+        optArgs.put("--tcpport", tcpPort + "");
+        optArgs.put("--udpport", udpPort + "");
+
+        String helpText = "Args: --serverip <String:server ip> --username <String:username> [--tcpport <int:tcp port>] [--udpport <int:udp port>]";
+        ArgHandler argsHandler = new ArgHandler(args, helpText, reqArgs,
+                optArgs);
+
+        // System.out.println(MAGENTA + "Server ip: " + argsMap.get("--serverip")
+        // + "; username: " + argsMap.get("--username")
+        // + "; tcpport: " + argsMap.get("--tcpport")
+        // + "; udpport: " + argsMap.get("--udpport") + RESET);
+
+        String username = argsHandler.get("username");
+        String ip = argsHandler.get("serverip");
+        try {
+            tcpPort = Integer.parseInt(argsHandler.get("tcpport"));
+            udpPort = Integer.parseInt(argsHandler.get("udpport"));
+        } catch (NumberFormatException e) {
+            System.out.println(RED + "Port arg must be a number, using default" + RESET);
+            argsHandler.put("--tcpport", tcpPort + "");
+            argsHandler.put("--udpport", udpPort + "");
         }
 
-        String serverIP = "10.115.110.178";
-        System.out.println(MAGENTA + "Username " + username + ": Connecting to server at " + serverIP + RESET);
-        Client client = new Client(serverIP, 9080, 9090, username);
+        System.out.println(CYAN);
+        System.out.println(argsHandler.toString().replace("--", ""));
+        System.out.println(RESET);
+        Client client = new Client(ip, tcpPort, udpPort, username);
         client.establishConnectToServer();
     }
 

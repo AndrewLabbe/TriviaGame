@@ -12,7 +12,7 @@ public class QuestionConfig {
     }
 
     public ServerQuestion[] getQuestionsAsArray() {
-        ArrayList<ServerQuestion> questions = new  ArrayList<ServerQuestion>();
+        ArrayList<ServerQuestion> questions = new ArrayList<ServerQuestion>();
 
         String currQ = null;
         ArrayList<String> currAnswers = new ArrayList<String>();
@@ -20,37 +20,37 @@ public class QuestionConfig {
         try {
             // Read all lines from the file and store them in a List of Strings
             List<String> lines = Files.readAllLines(Paths.get(configPath));
-            
+
             // Convert List to an Array
             String[] linesArray = lines.toArray(new String[0]);
-            
+
             // Print the lines
             for (String line : linesArray) {
                 // skip empty lines
-                if(line.trim().length() == 0)
+                if (line.trim().length() == 0)
                     continue;
                 char firstChar = line.charAt(0);
-                if(currQ == null) {
+                if (currQ == null) {
                     currQ = line;
                     continue;
                 }
                 // '-' is marker for a answer choice
-                if(firstChar == '-') {
+                if (firstChar == '-') {
                     line = line.substring(1);
                     currAnswers.add(line.trim()); // trim begining and end spaces if any
-                // '=' is marker for correct answer
-                } else if(firstChar == '=') {
+                    // '=' is marker for correct answer
+                } else if (firstChar == '=') {
                     line = line.replace("=", "");
-                    correctIndex = Integer.parseInt(line.trim()) -1; // trim begining and end spaces if any
-                // ';' is marker for end of question info
+                    correctIndex = Integer.parseInt(line.trim()) - 1; // trim begining and end spaces if any
+                    // ';' is marker for end of question info
                 } else if (firstChar == ';') {
-                    if(currAnswers.size() == 0) {
+                    if (currAnswers.size() == 0) {
                         System.err.println("Improper config file format, no answers found for question. Exiting...");
                         System.exit(-1);
-                    } else if(correctIndex == -1) {
+                    } else if (correctIndex == -1) {
                         System.err.println("Improper config file format, no correct answer found for question. Exiting...");
                         System.exit(-1);
-                    } else if(correctIndex >= currAnswers.size()) {
+                    } else if (correctIndex >= currAnswers.size()) {
                         System.err.println("Improper config file format, correct answer index out of bounds. Exiting...");
                         System.exit(-1);
                     }
@@ -59,14 +59,14 @@ public class QuestionConfig {
                     currQ = null;
                     currAnswers.clear();
                     correctIndex = -1;
-                    System.out.println("Added question: " + questions.get(questions.size()-1).getQuestionText());
-                // if anything else then config is improper
+                    // System.out.println("Added question: " + questions.get(questions.size()-1).getQuestionText());
+                    // if anything else then config is improper
                 } else {
                     System.err.println("Improper config file format question not terminated with ';'. Exiting...");
                     System.exit(-1);
                 }
             }
-            if(currQ != null) {
+            if (currQ != null) {
                 System.err.println("Improper config file format, final question not terminated with ';'. Exiting...");
                 System.exit(-1);
             }
@@ -83,9 +83,9 @@ public class QuestionConfig {
     public static void main(String[] args) {
         QuestionConfig questionConfig = new QuestionConfig("questions.txt");
         ServerQuestion[] questions = questionConfig.getQuestionsAsArray();
-        for(ServerQuestion q : questions) {
+        for (ServerQuestion q : questions) {
             System.out.println(q.getQuestionText());
-            for(String a : q.getAnswers()) {
+            for (String a : q.getAnswers()) {
                 System.out.println(a);
             }
             System.out.println(q.getCorrectQuestionIndex());

@@ -280,7 +280,7 @@ public class Server {
                         try {
                             String message = in.readLine(); // read the message
 
-                            if(message == null){
+                            if (message == null) {
                                 throw new SocketException();
                             }
 
@@ -579,10 +579,30 @@ public class Server {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
+        // OPTIONAL:
         // serverTCPPort
         // serverUDPPort
 
-        Server server = new Server(9080, 9090);
+        Map<String, String> optionalArgs = new HashMap<>();
+        int tcpPort = 9080;
+        int udpPort = 9090;
+        optionalArgs.put("--tcpport", tcpPort + "");
+        optionalArgs.put("--udpport", udpPort + "");
+        ArgHandler argHandler = new ArgHandler(args, "OPTIONAL! --tcpport <int:port> --udpport <int:port>", null, optionalArgs);
+        int portTCP = 9080;
+        int portUDP = 9090;
+        try {
+            portTCP = Integer.parseInt(argHandler.get("tcpport"));
+            portUDP = Integer.parseInt(argHandler.get("udpport"));
+        } catch (NumberFormatException e) {
+            System.out.println(RED + "Invalid port arg, make sure to format arg as number" + RESET);
+        }
+
+        System.out.println(CYAN);
+        System.out.println(argHandler.toString().replace("--", ""));
+        System.out.println(RESET);
+
+        Server server = new Server(portTCP, portUDP);
 
         new Thread(() -> {
             try {
