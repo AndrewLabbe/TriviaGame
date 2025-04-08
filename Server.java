@@ -237,7 +237,6 @@ public class Server {
     private void startClientThread(ClientInfo info, BufferedReader in, PrintWriter out, Socket clientSocket) throws IOException, InterruptedException {
         // create new thread
         new Thread(() -> {
-            // TODO There are 3 trys for socket exceptions
             try {
                 out.println("Starting thread for clientUsername: " + info.getClientUsername());
                 // if client just joined then clear any unresolved messages as they are only relevant while active
@@ -252,10 +251,14 @@ public class Server {
                 // answers will be wiped in game loop regardless of whether client is alive or dead before polling which covers this case
                 if (gameState == GameState.POLLING) {
                     info.queueSendMessage("LATE QUESTION" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
-                } else if (gameState == GameState.CLIENT_ANSWERING || gameState == GameState.SHOWING_ANSWERS) {
+                } else if (gameState == GameState.CLIENT_ANSWERING) {
                     System.out.println("Client joined during answering: " + info.getClientUsername());
                     info.queueSendMessage("ANSWERING" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
+                } else if (gameState == GameState.SHOWING_ANSWERS) {
+                    info.queueSendMessage("SHOWING");
                 }
+
+                sendLeaderboardTo(info);
 
                 int secondsBetweenPings = 2;
                 long lastPing = -1;
@@ -453,7 +456,7 @@ public class Server {
 
             // give client answer and allow showing for 5 seconds
             gameState = GameState.SHOWING_ANSWERS;
-            System.out.println(CYAN + "Showing answers..." + RESET);
+            System.out.println(CYAN + "Showing answers (5 seconds)..." + RESET);
             sendAnswerIndex();
             int timeToShowAnswers = 5000;
             Thread.sleep(timeToShowAnswers);
@@ -545,6 +548,19 @@ public class Server {
         System.out.println(GREEN + "Sent Leaderboard" + RESET);
         System.out.println(message);
         System.out.println("----\n");
+    }
+
+    public void sendLeaderboardTo(ClientInfo client) {
+        ArrayList<ClientInfo> leaderboard = createLeaderboard();
+        StringBuilder leaderboardMessage = new StringBuilder("Leaderboard");
+
+        for (int i = 0; i < leaderboard.size(); i++) {
+            ClientInfo cl = leaderboard.get(i);
+            leaderboardMessage.append((i + 1) + ". " + cl.getClientUsername() + ": " + client.getScore() + "$");
+        }
+
+        String message = leaderboardMessage.toString();
+        client.sendToClientQueue.add(message);
     }
 
     public ArrayList<ClientInfo> createLeaderboard() {

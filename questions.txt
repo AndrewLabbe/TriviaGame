@@ -22,7 +22,7 @@ Which cosmic Marvel hero is famously known for saying "I am Groot"?
 =2
 ;
 
-What is Vin Diesel's real name?
+What is Vin Diesels real name?
 -Diesel Vin
 -Vincent Diesel
 -Scott Lang
@@ -46,7 +46,7 @@ Who weilds the ten rings?
 =3
 ;
 
-What is Spider-Man’s real name?
+What is Spider-Mans real name?
 -Tony Stark
 -Peter Parker
 -Steven Rogers
@@ -54,7 +54,7 @@ What is Spider-Man’s real name?
 =2
 ;
 
-Which metal is used in Captain America’s shield?
+Which metal is used in Captain Americas shield?
 -Adamanite
 -Vibranium
 -Steel
@@ -112,7 +112,7 @@ Which planet does Superman originate from?
 =4
 ;
 
-Who is known as the "World's Greatest Detective" in the DC universe?
+Who is known as the "Worlds Greatest Detective" in the DC universe?
 -Aquaman
 -Batman
 -Cyborg
@@ -120,7 +120,7 @@ Who is known as the "World's Greatest Detective" in the DC universe?
 =2
 ;
 
-What is Batman’s real name?
+What is Batmans real name?
 -Mark Sinclair
 -Clark Kent
 -Bruce Wayne

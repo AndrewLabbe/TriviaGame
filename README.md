@@ -1,6 +1,7 @@
 ## LEFT TODO
 
-- Practically done: **GUI**
+- Clients with same username but upper/lowercase
+- Waiting to join replace question placeholder "this is where question 1 goes"
 
   Test Cases
 
