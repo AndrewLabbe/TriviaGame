@@ -6,6 +6,7 @@ test.class
 Server$1.class
 QuestionConfig.class
 Server.class
+ArgHandler.class
 Server$GameState.class
 ServerQuestion.class
 Client.class
