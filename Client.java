@@ -83,6 +83,8 @@ public class Client {
             System.out.println(RED + "Failed to connect to server, make sure the server is running on correct port and IP." + RESET);
             System.out.println(RED + "Exiting..." + RESET);
             System.exit(-1);
+        } catch (SocketException e) {
+            System.out.println(RED + "No network connection, please connect to wifi" + RESET);
         }
         // handshake
         out.println(this.username); // username = clientID
@@ -137,12 +139,24 @@ public class Client {
     private void processResponse() throws IOException, InterruptedException, ClassNotFoundException {
         System.out.println(BLUE + "READY TO RECIEVE FROM SERVER" + RESET);
 
-        int keepAliveSeconds = 5;
-        int timeoutSeconds = 2;
+        int keepAliveSeconds = 30;
+        int keepAliveWarningSeconds = 10;
+        int timeoutSeconds = 1;
         clientTCPSocket.setSoTimeout(timeoutSeconds * 1000);
 
-        long lastPingTimestamp = -1;
+        long lastPingTimestamp = System.currentTimeMillis();
         while (true) {
+            long sinceLastPing = System.currentTimeMillis() - lastPingTimestamp;
+
+            if (sinceLastPing > keepAliveWarningSeconds * 1000) {
+                System.out.println("\rServer connection has stalled for " + (sinceLastPing / 1000) + " app will timeout in " + (keepAliveSeconds - (sinceLastPing / 1000)));
+            }
+            if (sinceLastPing > keepAliveSeconds * 1000) {
+                // if longer than defined timeout period then kill the client as its no longer connected to server
+                System.out.println("Connection timeout, not recieved a ping from server in over " + keepAliveSeconds + " seconds");
+                System.exit(-1);
+            }
+
             String serverMessage = "";
             try {
                 try {
@@ -156,17 +170,12 @@ public class Client {
                 }
                 if (serverMessage == null) {
                     throw new SocketException();
-                } else if (serverMessage == "ping") {
+                } else if (serverMessage.equals("ping")) {
                     // server sends pings to client over TCP to inform client if the server is still connected
-                    System.out.println("new ping recieved from server!");
                     lastPingTimestamp = System.currentTimeMillis();
+                    continue;
                 }
-                long sinceLastPing = System.currentTimeMillis() - lastPingTimestamp;
-                if (sinceLastPing > keepAliveSeconds * 1000) {
-                    // if longer than defined timeout period then kill the client as its no longer connected to server
-                    System.out.println("Connection timeout, not recieved a ping from server in over " + timeoutSeconds + " seconds");
-                    System.exit(-1);
-                }
+
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
                 System.exit(-1);
