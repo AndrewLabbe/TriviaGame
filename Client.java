@@ -154,23 +154,27 @@ public class Client {
         int keepAliveSeconds = 30;
         int keepAliveWarningSeconds = 10;
         int timeoutSeconds = 1;
-        clientTCPSocket.setSoTimeout(timeoutSeconds * 1000);
-
+        try {
+            clientTCPSocket.setSoTimeout(timeoutSeconds * 1000);
+        } catch (Exception e) {
+            System.out.println("Error from SO timeout");
+            e.printStackTrace();
+        }
+        
         long lastPingTimestamp = System.currentTimeMillis();
         while (true) {
             long sinceLastPing = System.currentTimeMillis() - lastPingTimestamp;
 
-            if (sinceLastPing > keepAliveWarningSeconds * 1000) {
-                System.out.println("\rServer connection has stalled for " + (sinceLastPing / 1000) + " app will timeout in " + (keepAliveSeconds - (sinceLastPing / 1000)));
-            }
-            if (sinceLastPing > keepAliveSeconds * 1000) {
-                // if longer than defined timeout period then kill the client as its no longer connected to server
-                System.out.println("Connection timeout, not recieved a ping from server in over " + keepAliveSeconds + " seconds");
-                System.exit(-1);
-            }
-
             String serverMessage = "";
             try {
+                if (sinceLastPing > keepAliveWarningSeconds * 1000) {
+                    System.out.println("\rServer connection has stalled for " + (sinceLastPing / 1000) + " app will timeout in " + (keepAliveSeconds - (sinceLastPing / 1000)));
+                }
+                if (sinceLastPing > keepAliveSeconds * 1000) {
+                    // if longer than defined timeout period then kill the client as its no longer connected to server
+                    System.out.println("Connection timeout, not recieved a ping from server in over " + keepAliveSeconds + " seconds");
+                    System.exit(-1);
+                }
                 try {
                     serverMessage = in.readLine();
                 } catch (SocketTimeoutException e) {
@@ -190,6 +194,7 @@ public class Client {
 
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
+                e.printStackTrace();
                 System.exit(-1);
             }
             try {
@@ -271,7 +276,11 @@ public class Client {
             } catch (InterruptedException e) {
                 System.out.println(RED + "Error sleeping thread" + RESET);
                 e.printStackTrace();
+            } catch (Exception e){
+                System.out.println(RED + "General error on sleeping thread" + RESET);
+                e.printStackTrace();
             }
+            
         }
     }
 
