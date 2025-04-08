@@ -2,9 +2,7 @@
 
 - Practically done: **GUI**
 
-  - Make textboxes big enough to fit text i.e. "Time: joined I..." & question/option textboxes
-  - args
-    Test Cases
+  Test Cases
 
 - Client leaving/rejoining at each game-state ✅
 - Client WIFI goes

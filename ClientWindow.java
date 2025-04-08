@@ -59,12 +59,12 @@ public class ClientWindow implements ActionListener {
 		window.add(panel, BorderLayout.CENTER);
 
 		question = new JLabel("Question goes here."); // represents the question
-		question.setBounds(10, 5, 350, 100);
+		question.setBounds(10, 5, 700, 100);
 		System.out.println(question.getText());
 		panel.add(question);
 
 		answerFeedback = new JLabel(); // represents feedback about answers
-		answerFeedback.setBounds(200, 150, 200, 20);
+		answerFeedback.setBounds(200, 150, 500, 20);
 		panel.add(answerFeedback);
 
 		username = new JLabel(); // represents the username
@@ -85,15 +85,15 @@ public class ClientWindow implements ActionListener {
 		}
 
 		timer = new JLabel(); // represents the countdown shown on the window
-		timer.setBounds(250, 250, 100, 20);
+		timer.setBounds(250, 250, 500, 20);
 		panel.add(timer);
 
 		gameState = new JLabel("Waiting for players..."); // represents the current state of the game
-		gameState.setBounds(200, 200, 200, 20);
+		gameState.setBounds(200, 200, 500, 20);
 		panel.add(gameState);
 
 		score = new JLabel("SCORE: 0"); // represents the score
-		score.setBounds(50, 250, 100, 20);
+		score.setBounds(50, 250, 200, 20);
 		panel.add(score);
 
 		poll = new JButton("Poll"); // button that use clicks/ like a buzzer
