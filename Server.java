@@ -552,7 +552,7 @@ public class Server {
 
         for (int i = 0; i < leaderboard.size(); i++) {
             ClientInfo cl = leaderboard.get(i);
-            leaderboardMessage.append((i + 1) + ". " + cl.getClientUsername() + ": " + client.getScore() + "$");
+            leaderboardMessage.append((i + 1) + ". " + cl.getClientUsername() + ": " + cl.getScore() + "$");
         }
 
         String message = leaderboardMessage.toString();
