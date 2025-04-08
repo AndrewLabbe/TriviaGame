@@ -264,6 +264,7 @@ public class Server {
                     long timeSinceLastPing = System.currentTimeMillis() - lastPing;
                     if (timeSinceLastPing > secondsBetweenPings * 1000) {
                         out.println("ping");
+                        lastPing = System.currentTimeMillis();
                     }
                     // send queued messages to client
                     while (!info.sendToClientQueue.isEmpty()) {
@@ -278,6 +279,10 @@ public class Server {
                     try {
                         try {
                             String message = in.readLine(); // read the message
+
+                            if(message == null){
+                                throw new SocketException();
+                            }
 
                             info.recievedClientAnswersQueue.add(message); // put message into queue to be read by gameloop
                             // System.out.println("Client says: " + message);
@@ -315,7 +320,7 @@ public class Server {
                 clientSocket.close();
                 System.out.println("Successfully Closed");
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("Socket is closed");
             }
         }).start();
 
