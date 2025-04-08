@@ -52,7 +52,7 @@ public class Client {
         try {
             this.clientUDPSocket = new DatagramSocket();
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
     }
 
@@ -143,7 +143,7 @@ public class Client {
             System.out.println(CYAN + "Sending Buzz Packet " + message + RESET);
             this.clientUDPSocket.send(packet);
         } catch (IOException e) {
-            e.printStackTrace();
+
         }
     }
 
@@ -158,9 +158,9 @@ public class Client {
             clientTCPSocket.setSoTimeout(timeoutSeconds * 1000);
         } catch (Exception e) {
             System.out.println("Error from SO timeout");
-            e.printStackTrace();
+
         }
-        
+
         long lastPingTimestamp = System.currentTimeMillis();
         while (true) {
             long sinceLastPing = System.currentTimeMillis() - lastPingTimestamp;
@@ -194,7 +194,7 @@ public class Client {
 
             } catch (Exception e) {
                 System.out.println(RED + "Lost connection to the server. Exiting..." + RESET);
-                e.printStackTrace();
+
                 System.exit(-1);
             }
             try {
@@ -265,7 +265,7 @@ public class Client {
                 }
             } catch (NumberFormatException e) {
                 System.out.println(RED + "NUMBER FORMAT EXCEPTION Error parsing server message: " + serverMessage + RESET);
-                e.printStackTrace();
+
                 continue;
             } catch (Exception e) {
                 System.out.println(RED + "GENERAL Error processing server message: " + serverMessage + RESET);
@@ -275,12 +275,12 @@ public class Client {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
                 System.out.println(RED + "Error sleeping thread" + RESET);
-                e.printStackTrace();
-            } catch (Exception e){
+
+            } catch (Exception e) {
                 System.out.println(RED + "General error on sleeping thread" + RESET);
-                e.printStackTrace();
+
             }
-            
+
         }
     }
 

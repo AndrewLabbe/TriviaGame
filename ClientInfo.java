@@ -48,7 +48,7 @@ public class ClientInfo {
 
     public boolean isUsernameIPMatch(String clientID, String ip) {
         System.out.println("compared clientid " + clientID);
-        return this.TCPIP.equals(TCPIP) && this.clientUsername.equals(clientID);
+        return this.TCPIP.equals(TCPIP) && this.clientUsername.equalsIgnoreCase(clientID);
     }
 
 }

@@ -58,7 +58,7 @@ public class ClientWindow implements ActionListener {
 		panel.setBounds(0, 0, window.getWidth(), window.getHeight()); // Set panel size
 		window.add(panel, BorderLayout.CENTER);
 
-		question = new JLabel("Question goes here."); // represents the question
+		question = new JLabel("Waiting for question from server..."); // represents the question
 		question.setBounds(10, 5, 700, 100);
 		System.out.println(question.getText());
 		panel.add(question);
@@ -76,7 +76,7 @@ public class ClientWindow implements ActionListener {
 		options = new JRadioButton[4];
 		optionGroup = new ButtonGroup();
 		for (int index = 0; index < options.length; index++) {
-			options[index] = new JRadioButton("Answer choice " + (index + 1)); // represents an option
+			options[index] = new JRadioButton("..."); // represents an option
 			// if a radio button is clicked, the event would be thrown to this class to handle
 			options[index].addActionListener(this);
 			options[index].setBounds(10, 110 + (index * 20), 350, 20);

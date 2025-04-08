@@ -56,7 +56,7 @@ public class Server {
             this.serverTCPSocket = new ServerSocket(this.portTCP);
             this.UDPDatagramSocket = new DatagramSocket(this.portUDP);
         } catch (IOException e) {
-            e.printStackTrace();
+
         }
 
         QuestionConfig qConfig = new QuestionConfig("questions.txt");
@@ -116,7 +116,7 @@ public class Server {
                     // System.out.println("UDP Socket Timeout, no packets received in " + secondsTimeout + " seconds");
                     Thread.sleep(100);
                 } catch (Exception e) {
-                    e.printStackTrace();
+
                     Thread.sleep(1000);
                 }
 
@@ -254,8 +254,6 @@ public class Server {
                 } else if (gameState == GameState.CLIENT_ANSWERING) {
                     System.out.println("Client joined during answering: " + info.getClientUsername());
                     info.queueSendMessage("ANSWERING" + ClientQuestion.serialize(ClientQuestion.convertQuestion(questionList[currentQuestion], currentQuestion)));
-                } else if (gameState == GameState.SHOWING_ANSWERS) {
-                    info.queueSendMessage("SHOWING");
                 }
 
                 sendLeaderboardTo(info);
@@ -309,7 +307,6 @@ public class Server {
             } catch (IOException | InterruptedException e) {
                 info.setActive(false); // TODO logic is not throwing an error
 
-                e.printStackTrace();
                 // will end thread if any exception
                 // TODO decide if all exceptions should quit or if say io exception should keep going
             }
@@ -335,7 +332,6 @@ public class Server {
             createUDPPollingThread();
         }).start();
 
-        // TODO process for managing when to stop waiting for clients
         gameState = GameState.WAITING_FOR_PLAYERS;
         System.out.println(GREEN + "Currently waiting for players to join..." + RESET);
 
@@ -624,7 +620,7 @@ public class Server {
             try {
                 server.createTCPConnectionCreationThread();
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+
             }
         }).start();
 
